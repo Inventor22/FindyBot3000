@@ -16,6 +16,9 @@
 #define PIXEL_TYPE WS2812B
 #define POWER_SUPPLY_RELAY_PIN D0
 
+// The width, in LEDs, that a single character consumes on the LED matrix
+#define LED_MATRIX_CHAR_WIDTH 6
+
 static const unsigned char PROGMEM fire[] = {
   0B00010000,
   0B01100100,
@@ -87,7 +90,7 @@ int scrollPosition = matrix.width();
 int scrollCount = 0;
 
 String text = "H I ";
-int textLen = 0;
+int textLength = 0;
 
 bool displayOn = true;
 
@@ -106,12 +109,16 @@ void setup()
   Particle.subscribe("setDisplay", setDisplay);
   Particle.subscribe("setBrightness", setBrightness);
 
-  pinMode(D0, OUTPUT);
-  digitalWrite(D0, HIGH);
+  // Trigger the integration
+  String data = "Hello from FindyBot3000!";
+  Particle.publish("findItemEvent", data, PRIVATE);
+
+  pinMode(POWER_SUPPLY_RELAY_PIN, OUTPUT);
+  digitalWrite(POWER_SUPPLY_RELAY_PIN, LOW);
 
   delay(1000);
 
-  textLen = text.length();
+  textLength = text.length();
 
   matrix.begin();
   matrix.setTextWrap(false);
@@ -125,14 +132,14 @@ int offset = 0;
 void loop()
 {
   if (!displayOn) return;
-
-  if (doTheThing)
-  {
-    //doIt();
-    allLeds(offset++);
-    delay(10);
-  }
-  //scrollDisplay();
+  //
+  // if (doTheThing)
+  // {
+  //   //doIt();
+  //   allLeds(offset++);
+  //   delay(10);
+  // }
+  scrollDisplay();
 }
 
 // Wheel function from https://github.com/adafruit/Adafruit_NeoPixel/blob/312693bfce447095ff0d8b6f6a1cc569415d77d7/examples/strandtest/strandtest.ino#L123
@@ -194,8 +201,8 @@ void doIt()
 
 void lightBox(int row, int col, uint16_t color)
 {
-   if (!((0 <= row && row < 8 && 0 <= col && col < 16)
-      || (8 <= row && row < 14 && 0 <= col && col < 8))) return;
+  //  if (!((0 <= row && row < 8 && 0 <= col && col < 16)
+  //     || (8 <= row && row < 14 && 0 <= col && col < 8))) return;
 
   int ledCount;
   int ledOffset;
@@ -226,12 +233,13 @@ void scrollDisplay()
   matrix.setCursor(scrollPosition, 0);
   matrix.print(text);
 
-  for (int i = 0; i < textLen/2; i++)
+  for (int i = 0; i < textLength/2; i++)
   {
-    matrix.drawBitmap(scrollPosition + i*12, 8, fire, 8, 6, colors[0 /*(scrollCount+i)%colorCount*/]);
+    matrix.drawBitmap(scrollPosition + i*LED_MATRIX_CHAR_WIDTH*2, 8, fire, 8, 6, colors[0 /*(scrollCount+i)%colorCount*/]);
   }
 
-  if (--scrollPosition < -textLen*6)
+  // Change the text color on the next scroll through
+  if (--scrollPosition < -textLength*LED_MATRIX_CHAR_WIDTH)
   {
     scrollPosition = matrix.width();
     if(++scrollCount >= colorCount) scrollCount = 0;
@@ -251,8 +259,8 @@ int r(int minRand, int maxRand)
 void findItem(const char *event, const char *data)
 {
   if (data == NULL) return;
-  text = data; // built in operator to convert cStr to String
-  textLen = text.length();
+  text = data; // built in operator to convert char* to String
+  textLength = text.length();
 
   doTheThing = true;
 }
@@ -269,6 +277,7 @@ void setDisplay(const char *event, const char *data)
     digitalWrite(POWER_SUPPLY_RELAY_PIN, HIGH);
 
     // Give the power supply a moment to warm up if it was turned off
+    // Datasheet suggests 20-50ms warm up time to support full load
     if (!displayOn)
     {
        delay(2000);
