@@ -94,11 +94,15 @@ int textLength = 0;
 
 bool displayOn = false;
 
-// Function prototypes
+// IFTTT Function prototypes
+void insertItem(const char *event, const char *data);
+void removeItem(const char *event, const char *data);
 void findItem(const char *event, const char *data);
 void setDisplay(const char *event, const char *data);
 void setBrightness(const char *event, const char *data);
-void findItemEventResponseHandler(const char *event, const char *data);
+
+// Webhook response handler function prototypes
+void databaseQueryEventResponseHandler(const char *event, const char *data);
 
 // Program
 void setup()
@@ -107,9 +111,12 @@ void setup()
   Serial.println("FindyBot3000");
 
   Particle.subscribe("findItem", findItem);
+  Particle.subscribe("insertItem", insertItem);
+  Particle.subscribe("removeItem", removeItem);
   Particle.subscribe("setDisplay", setDisplay);
   Particle.subscribe("setBrightness", setBrightness);
-  Particle.subscribe("hook-response/findItemEvent", findItemEventResponseHandler, MY_DEVICES);
+
+  Particle.subscribe("hook-response/databaseQueryEvent", databaseQueryEventResponseHandler, MY_DEVICES);
 
   pinMode(POWER_SUPPLY_RELAY_PIN, OUTPUT);
   digitalWrite(POWER_SUPPLY_RELAY_PIN, LOW);
@@ -202,24 +209,39 @@ void findItem(const char *event, const char *data)
 
   Serial.println("findItem: " + text);
 
+  char jsonData[255];
+  sprintf(jsonData, "{\"command\":\"find\", \"data\":\"%s\"}", data);
+
+  Serial.println(jsonData);
+
   // This function is tied to a webhook created in Particle Console
   // https://console.particle.io/integrations
   // The webhook calls an Azure Function, providing 'text' as the input data
   // The Azure Function queries a SQL database using the 'text' variable as a
   // primary key
-  Particle.publish("findItemEvent", text, PRIVATE);
+  Particle.publish("databaseQueryEvent", jsonData, PRIVATE);
 
   setDisplay(NULL, "on");
 }
 
+void insertItem(const char *event, const char *data)
+{
+
+}
+
+void removeItem(const char *event, const char *data)
+{
+  
+}
+
 // This function handles the response from the Azure Function triggered by
 // the findItem function above
-void findItemEventResponseHandler(const char *event, const char *data)
+void databaseQueryEventResponseHandler(const char *event, const char *data)
 {
   if (data == NULL) return;
   String responseMsg = data;
-  Serial.println("findItemEventResponseHandler: " + responseMsg);
-  text = "Data found!";// + responseMsg;
+  Serial.println("databaseQueryEventResponseHandler: " + responseMsg);
+  text = responseMsg;
   textLength = text.length();
 }
 
