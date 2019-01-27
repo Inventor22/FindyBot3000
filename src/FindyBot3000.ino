@@ -92,12 +92,13 @@ int scrollCount = 0;
 String text = "H I ";
 int textLength = 0;
 
-bool displayOn = true;
+bool displayOn = false;
 
 // Function prototypes
 void findItem(const char *event, const char *data);
 void setDisplay(const char *event, const char *data);
 void setBrightness(const char *event, const char *data);
+void findItemEventResponseHandler(const char *event, const char *data);
 
 // Program
 void setup()
@@ -108,10 +109,7 @@ void setup()
   Particle.subscribe("findItem", findItem);
   Particle.subscribe("setDisplay", setDisplay);
   Particle.subscribe("setBrightness", setBrightness);
-
-  // Trigger the integration
-  String data = "Hello from FindyBot3000!";
-  Particle.publish("findItemEvent", data, PRIVATE);
+  Particle.subscribe("hook-response/findItemEvent", findItemEventResponseHandler, MY_DEVICES);
 
   pinMode(POWER_SUPPLY_RELAY_PIN, OUTPUT);
   digitalWrite(POWER_SUPPLY_RELAY_PIN, LOW);
@@ -124,6 +122,10 @@ void setup()
   matrix.setTextWrap(false);
   matrix.setBrightness(30);
   matrix.setTextColor(matrix.Color(255,0,255));
+
+  // Trigger the integration
+  //String data = "Hello from FindyBot3000!";
+  //Particle.publish("findItemEvent", data, PRIVATE);
 }
 
 bool doTheThing = false;
@@ -135,68 +137,11 @@ void loop()
   //
   // if (doTheThing)
   // {
-  //   //doIt();
+  //   //lightBoxes();
   //   allLeds(offset++);
   //   delay(10);
   // }
   scrollDisplay();
-}
-
-// Wheel function from https://github.com/adafruit/Adafruit_NeoPixel/blob/312693bfce447095ff0d8b6f6a1cc569415d77d7/examples/strandtest/strandtest.ino#L123
-// Input a value 0 to 255 to get a color value.
-// The colours are a transition r - g - b - back to r.
-uint32_t Wheel(uint8_t WheelPos) {
-  WheelPos = 255 - WheelPos;
-  if(WheelPos < 85) {
-    return matrix.Color(255 - WheelPos * 3, 0, WheelPos * 3);
-  }
-  if(WheelPos < 170) {
-    WheelPos -= 85;
-    return matrix.Color(0, WheelPos * 3, 255 - WheelPos * 3);
-  }
-  WheelPos -= 170;
-  return matrix.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
-}
-
-void allLeds(int offset)
-{
-  for (int row = 0; row < 14; row++)
-  {
-    for (int col = 0; col < 60; col++)
-    {
-      matrix.drawPixel(col, row, Wheel((row*col+offset)%255));
-    }
-  }
-
-  matrix.show();
-  //
-  // while(true) {
-  //   delay(1000);
-  // }
-}
-
-void doIt()
-{
-  for (int row = 0; row < 8; row++)
-  {
-    for (int col = 0; col < 16; col++)
-    {
-      lightBox(row, col, colors[r(0, colorCount)]);
-      delay(50);
-    }
-  }
-  for (int row = 8; row < 14; row++)
-  {
-    for (int col = 0; col < 8; col++)
-    {
-      lightBox(row, col, colors[r(0, colorCount)]);
-      delay(50);
-    }
-  }
-  //lightBox(r(0, 13), r(0, 16), colors[r(0, colorCount)]);
-  while(true) {
-    delay(1000);
-  }
 }
 
 void lightBox(int row, int col, uint16_t color)
@@ -219,8 +164,7 @@ void lightBox(int row, int col, uint16_t color)
 
   matrix.fillScreen(0);
 
-  for (int i = 0; i < ledCount; i++)
-  {
+  for (int i = 0; i < ledCount; i++) {
     matrix.drawPixel(ledOffset + i, row, color);
   }
 
@@ -233,25 +177,19 @@ void scrollDisplay()
   matrix.setCursor(scrollPosition, 0);
   matrix.print(text);
 
-  for (int i = 0; i < textLength/2; i++)
-  {
+  for (int i = 0; i < textLength/2; i++) {
     matrix.drawBitmap(scrollPosition + i*LED_MATRIX_CHAR_WIDTH*2, 8, fire, 8, 6, colors[0 /*(scrollCount+i)%colorCount*/]);
   }
 
   // Change the text color on the next scroll through
-  if (--scrollPosition < -textLength*LED_MATRIX_CHAR_WIDTH)
-  {
+  if (--scrollPosition < -textLength*LED_MATRIX_CHAR_WIDTH) {
     scrollPosition = matrix.width();
     if(++scrollCount >= colorCount) scrollCount = 0;
     matrix.setTextColor(colors[scrollCount]);
   }
+
   matrix.show();
   //delay(10);
-}
-
-int r(int minRand, int maxRand)
-{
-  return rand() % (maxRand-minRand+1) + minRand;
 }
 
 // Function callbacks
@@ -262,9 +200,46 @@ void findItem(const char *event, const char *data)
   text = data; // built in operator to convert char* to String
   textLength = text.length();
 
-  doTheThing = true;
+  Serial.println("findItem: " + text);
+
+  // This function is tied to a webhook created in Particle Console
+  // https://console.particle.io/integrations
+  // The webhook calls an Azure Function, providing 'text' as the input data
+  // The Azure Function queries a SQL database using the 'text' variable as a
+  // primary key
+  Particle.publish("findItemEvent", text, PRIVATE);
+
+  setDisplay(NULL, "on");
 }
 
+// This function handles the response from the Azure Function triggered by
+// the findItem function above
+void findItemEventResponseHandler(const char *event, const char *data)
+{
+  if (data == NULL) return;
+  String responseMsg = data;
+  Serial.println("findItemEventResponseHandler: " + responseMsg);
+  text = "Data found!";// + responseMsg;
+  textLength = text.length();
+}
+
+void setDisplay(bool state)
+{
+  if (displayOn == state) return;
+
+  if (state) {
+    digitalWrite(POWER_SUPPLY_RELAY_PIN, HIGH);
+    // Give the power supply a moment to warm up if it was turned off
+    // Datasheet suggests 20-50ms warm up time to support full load
+    delay(2000);
+  } else {
+    digitalWrite(POWER_SUPPLY_RELAY_PIN, LOW);
+  }
+
+  displayOn = state;
+}
+
+// Turn the LED matrix power supply relay on or off
 void setDisplay(const char *event, const char *data)
 {
   if (data == NULL) return;
@@ -272,26 +247,14 @@ void setDisplay(const char *event, const char *data)
   String onOffText = data;
   onOffText = onOffText.toLowerCase();
 
-  if (strstr(onOffText, "on"))
-  {
-    digitalWrite(POWER_SUPPLY_RELAY_PIN, HIGH);
-
-    // Give the power supply a moment to warm up if it was turned off
-    // Datasheet suggests 20-50ms warm up time to support full load
-    if (!displayOn)
-    {
-       delay(2000);
-    }
-
-    displayOn = true;
-  }
-  else if (strstr(onOffText, "off"))
-  {
-    digitalWrite(POWER_SUPPLY_RELAY_PIN, LOW);
-    displayOn = false;
+  if (strstr(onOffText, "on")) {
+    setDisplay(true);
+  } else if (strstr(onOffText, "off")) {
+    setDisplay(false);
   }
 }
 
+// Set the brightness of the LED matrix, from 1 to 100, inclusive
 void setBrightness(const char *event, const char *data)
 {
   if (data == NULL) return;
@@ -299,9 +262,70 @@ void setBrightness(const char *event, const char *data)
   String brightnessText = data;
   int brightness = brightnessText.toInt();
 
-  if (0 < brightness && brightness <= 100)
-  {
+  if (0 < brightness && brightness <= 100) {
     matrix.setBrightness(map(brightness, 0, 100, 0, 255));
     matrix.show();
   }
+}
+
+
+// Testing functions
+// Wheel function from https://github.com/adafruit/Adafruit_NeoPixel/blob/312693bfce447095ff0d8b6f6a1cc569415d77d7/examples/strandtest/strandtest.ino#L123
+// Input a value 0 to 255 to get a color value.
+// The colours are a transition r - g - b - back to r.
+uint32_t Wheel(uint8_t WheelPos) {
+  WheelPos = 255 - WheelPos;
+  if(WheelPos < 85) {
+    return matrix.Color(255 - WheelPos * 3, 0, WheelPos * 3);
+  }
+  if(WheelPos < 170) {
+    WheelPos -= 85;
+    return matrix.Color(0, WheelPos * 3, 255 - WheelPos * 3);
+  }
+  WheelPos -= 170;
+  return matrix.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
+}
+
+// Light all LEDs in the matrix with a rainbow effect
+void allLeds(int offset)
+{
+  for (int row = 0; row < 14; row++) {
+    for (int col = 0; col < 60; col++) {
+      matrix.drawPixel(col, row, Wheel((row*col+offset)%255));
+    }
+  }
+
+  matrix.show();
+
+  // Loop indefinitely
+  // while(true) {
+  //   delay(1000);
+  // }
+}
+
+// Light each led-mapped box on the organizer one by one
+void lightBoxes()
+{
+  for (int row = 0; row < 8; row++) {
+    for (int col = 0; col < 16; col++) {
+      lightBox(row, col, colors[r(0, colorCount)]);
+      delay(50);
+    }
+  }
+  for (int row = 8; row < 14; row++) {
+    for (int col = 0; col < 8; col++) {
+      lightBox(row, col, colors[r(0, colorCount)]);
+      delay(50);
+    }
+  }
+  //lightBox(r(0, 13), r(0, 16), colors[r(0, colorCount)]);
+  while(true) {
+    delay(1000);
+  }
+}
+
+// Generate a random number between minRand and maxRand
+int r(int minRand, int maxRand)
+{
+  return rand() % (maxRand-minRand+1) + minRand;
 }
