@@ -196,40 +196,35 @@ void scrollDisplay()
   //delay(10);
 }
 
-// Function callbacks
-const int numGoogleAssistantCommands = 5;
-const char* googleAssistantCommand[] =
+struct CommandHandler
 {
-  "FindItem",
-  "InsertItem",
-  "RemoveItem",
-  "SetBrightness",
-  "SetDisplay"
+  char* command;
+  void (*handle) (const char* data);
 };
 
-typedef void (*GoogleAssistantHandler) (const char* data);
-GoogleAssistantHandler handle[] =
+// Function callbacks
+const CommandHandler commands[] =
 {
-    findItem,
-    insertItem,
-    removeItem,
-    setBrightness,
-    setDisplay
+  { "FindItem", findItem },
+  { "InsertItem", insertItem },
+  { "RemoveItem", removeItem },
+  { "SetBrightness", setBrightness },
+  { "SetDisplay", setDisplay }
 };
 
 void googleAssistantEventHandler(const char* event, const char* data)
 {
   if (event == NULL) return;
 
-  Serial.printf("googleAssistantEventHandler event: %s, data: %s", event, data);
+  Serial.printf("googleAssistantEventHandler event: %s, data: %s\n", event, data);
 
   // loop through each command until a match is found; then call the associated
   // handler
-  for (int i = 0; i < numGoogleAssistantCommands; i++)
+  for (CommandHandler cmd : commands)
   {
-    if (strstr(event, googleAssistantCommand[i]))
+    if (strstr(event, cmd.command))
     {
-      handle[i](data);
+      cmd.handle(data);
       break;
     }
   }
