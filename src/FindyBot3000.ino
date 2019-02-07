@@ -9,6 +9,7 @@
 #include <neomatrix.h>
 #include <Adafruit_GFX.h>
 #include <neopixel.h>
+#include <ArduinoJson.h>
 
 // Constants
 #define PIXEL_PIN D3
@@ -18,6 +19,11 @@
 
 // The width, in LEDs, that a single character consumes on the LED matrix
 #define LED_MATRIX_CHAR_WIDTH 6
+
+#define ON true
+#define OFF false
+
+StaticJsonBuffer<200> jsonBuffer;
 
 static const unsigned char PROGMEM fire[] = {
   0B00010000,
@@ -110,6 +116,8 @@ void setup()
   Serial.begin();
   Serial.println("FindyBot3000");
 
+  // Cannot have more than FOUR (4) Particle.subscribe registrations.
+  // Therefore, I must
   Particle.subscribe("findItem", findItem);
   Particle.subscribe("insertItem", insertItem);
   Particle.subscribe("removeItem", removeItem);
@@ -204,8 +212,8 @@ void scrollDisplay()
 void findItem(const char *event, const char *data)
 {
   if (data == NULL) return;
-  text = data; // built in operator to convert char* to String
-  textLength = text.length();
+  //text = data; // built in operator to convert char* to String
+  //textLength = text.length();
 
   Serial.println("findItem: " + text);
 
@@ -220,8 +228,6 @@ void findItem(const char *event, const char *data)
   // The Azure Function queries a SQL database using the 'text' variable as a
   // primary key
   Particle.publish("databaseQueryEvent", jsonData, PRIVATE);
-
-  setDisplay(NULL, "on");
 }
 
 void insertItem(const char *event, const char *data)
@@ -231,18 +237,47 @@ void insertItem(const char *event, const char *data)
 
 void removeItem(const char *event, const char *data)
 {
-  
+
 }
 
 // This function handles the response from the Azure Function triggered by
 // the findItem function above
 void databaseQueryEventResponseHandler(const char *event, const char *data)
 {
-  if (data == NULL) return;
-  String responseMsg = data;
-  Serial.println("databaseQueryEventResponseHandler: " + responseMsg);
-  text = responseMsg;
+  Serial.println("databaseQueryEventResponseHandler");
+  // if (data == NULL) return;
+  //
+  // Serial.println(data);
+  //
+  // JsonArray& root = jsonBuffer.parseArray(data);
+  //
+  // if (!root.success()) {
+  //   Serial.println("parseObject() failed");
+  //   return;
+  // }
+  //
+  // Serial.println("Array size: " + root.size());
+  //
+  // if (root.size() > 1)
+  // {
+  //   return;
+  // }
+  //
+  // JsonObject& response = root[0];
+  //
+  // const char* item = response["Name"];
+  // int quantity = response["Quantity"];
+  // int row = response["Row"];
+  // int column = response["Column"];
+  //
+  // String responseMsg = item;
+  // Serial.println("databaseQueryEventResponseHandler: " + responseMsg + ", Quantity: " + quantity + ", Row: " + row + ", Column: " + column);
+  //
+  // text = responseMsg;
+  text = data;
   textLength = text.length();
+
+  setDisplay(ON);
 }
 
 void setDisplay(bool state)
