@@ -101,11 +101,7 @@ int textLength = 0;
 bool displayOn = false;
 
 // IFTTT Function prototypes
-void insertItem(const char *event, const char *data);
-void removeItem(const char *event, const char *data);
-void findItem(const char *event, const char *data);
-void setDisplay(const char *event, const char *data);
-void setBrightness(const char *event, const char *data);
+void googleAssistantEventHandler(const char *event, const char *data);
 
 // Webhook response handler function prototypes
 void databaseQueryEventResponseHandler(const char *event, const char *data);
@@ -116,16 +112,13 @@ void setup()
   Serial.begin();
   Serial.println("FindyBot3000");
 
-  // Cannot have more than FOUR (4) Particle.subscribe registrations.
-  // Therefore, I must
-  Particle.subscribe("findItem", findItem);
-  Particle.subscribe("insertItem", insertItem);
-  Particle.subscribe("removeItem", removeItem);
-  Particle.subscribe("setDisplay", setDisplay);
-  Particle.subscribe("setBrightness", setBrightness);
+  // Handle incoming Google Assistant commands, via IFTTT
+  Particle.subscribe("Google_", googleAssistantEventHandler);
 
+  // Handle Azure Function web hook response
   Particle.subscribe("hook-response/databaseQueryEvent", databaseQueryEventResponseHandler, MY_DEVICES);
 
+  // Start FindyBot3000 with the distplay off
   pinMode(POWER_SUPPLY_RELAY_PIN, OUTPUT);
   digitalWrite(POWER_SUPPLY_RELAY_PIN, LOW);
 
@@ -137,10 +130,6 @@ void setup()
   matrix.setTextWrap(false);
   matrix.setBrightness(30);
   matrix.setTextColor(matrix.Color(255,0,255));
-
-  // Trigger the integration
-  //String data = "Hello from FindyBot3000!";
-  //Particle.publish("findItemEvent", data, PRIVATE);
 }
 
 bool doTheThing = false;
@@ -208,8 +197,46 @@ void scrollDisplay()
 }
 
 // Function callbacks
+const int numGoogleAssistantCommands = 5;
+const char* googleAssistantCommand[] =
+{
+  "FindItem",
+  "InsertItem",
+  "RemoveItem",
+  "SetBrightness",
+  "SetDisplay"
+};
+
+typedef void (*GoogleAssistantHandler) (const char* data);
+GoogleAssistantHandler handle[] =
+{
+    findItem,
+    insertItem,
+    removeItem,
+    setBrightness,
+    setDisplay
+};
+
+void googleAssistantEventHandler(const char* event, const char* data)
+{
+  if (event == NULL) return;
+
+  Serial.printf("googleAssistantEventHandler event: %s, data: %s", event, data);
+
+  // loop through each command until a match is found; then call the associated
+  // handler
+  for (int i = 0; i < numGoogleAssistantCommands; i++)
+  {
+    if (strstr(event, googleAssistantCommand[i]))
+    {
+      handle[i](data);
+      break;
+    }
+  }
+}
+
 // Todo - Update to fetch from DB
-void findItem(const char *event, const char *data)
+void findItem(const char *data)
 {
   if (data == NULL) return;
   //text = data; // built in operator to convert char* to String
@@ -224,20 +251,47 @@ void findItem(const char *event, const char *data)
 
   // This function is tied to a webhook created in Particle Console
   // https://console.particle.io/integrations
-  // The webhook calls an Azure Function, providing 'text' as the input data
-  // The Azure Function queries a SQL database using the 'text' variable as a
-  // primary key
+  // The webhook calls an Azure Function, passing along with it a json payload eh
   Particle.publish("databaseQueryEvent", jsonData, PRIVATE);
 }
 
-void insertItem(const char *event, const char *data)
+void insertItem(const char *data)
 {
 
 }
 
-void removeItem(const char *event, const char *data)
+void removeItem(const char *data)
 {
 
+}
+
+// Turn the LED matrix power supply relay on or off
+void setDisplay(const char *data)
+{
+  if (data == NULL) return;
+
+  String onOffText = data;
+  onOffText = onOffText.toLowerCase();
+
+  if (strstr(onOffText, "on")) {
+    setDisplay(true);
+  } else if (strstr(onOffText, "off")) {
+    setDisplay(false);
+  }
+}
+
+// Set the brightness of the LED matrix, from 1 to 100, inclusive
+void setBrightness(const char *data)
+{
+  if (data == NULL) return;
+
+  String brightnessText = data;
+  int brightness = brightnessText.toInt();
+
+  if (0 < brightness && brightness <= 100) {
+    matrix.setBrightness(map(brightness, 0, 100, 0, 255));
+    matrix.show();
+  }
 }
 
 // This function handles the response from the Azure Function triggered by
@@ -295,36 +349,6 @@ void setDisplay(bool state)
 
   displayOn = state;
 }
-
-// Turn the LED matrix power supply relay on or off
-void setDisplay(const char *event, const char *data)
-{
-  if (data == NULL) return;
-
-  String onOffText = data;
-  onOffText = onOffText.toLowerCase();
-
-  if (strstr(onOffText, "on")) {
-    setDisplay(true);
-  } else if (strstr(onOffText, "off")) {
-    setDisplay(false);
-  }
-}
-
-// Set the brightness of the LED matrix, from 1 to 100, inclusive
-void setBrightness(const char *event, const char *data)
-{
-  if (data == NULL) return;
-
-  String brightnessText = data;
-  int brightness = brightnessText.toInt();
-
-  if (0 < brightness && brightness <= 100) {
-    matrix.setBrightness(map(brightness, 0, 100, 0, 255));
-    matrix.show();
-  }
-}
-
 
 // Testing functions
 // Wheel function from https://github.com/adafruit/Adafruit_NeoPixel/blob/312693bfce447095ff0d8b6f6a1cc569415d77d7/examples/strandtest/strandtest.ino#L123
