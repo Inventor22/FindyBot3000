@@ -15,6 +15,15 @@ using Microsoft.Extensions.Configuration;
 
 namespace FindyBot3000.AzureFunction
 {
+    public static class Command
+    {
+        public const string Find = "find";
+        public const string FindTags = "findtags";
+        public const string Insert = "insert";
+        public const string Remove = "remove";
+        public const string AddTags = "addtags";
+    }
+
     public static class SqlCommandAzureFunction
     {
         [FunctionName("SqlCommandAzureFunction")]
@@ -67,17 +76,24 @@ namespace FindyBot3000.AzureFunction
 
                 switch (command.ToLowerInvariant())
                 {
-                    case "find":
+                    case Command.Find:
                         response = FindItem(data, connection, log);
                         break;
 
-                    case "insert":
+                    case Command.FindTags:
+                        response = FindTags(data, connection, log);
                         break;
 
-                    case "remove":
+                    case Command.Insert:
+                        response = "insert";
                         break;
 
-                    case "addtags":
+                    case Command.Remove:
+                        response = "remove";
+                        break;
+
+                    case Command.AddTags:
+                        response = "addtags";
                         break;
                 }
 
@@ -101,20 +117,7 @@ namespace FindyBot3000.AzureFunction
                 }
             }
 
-            return (ActionResult)new OkObjectResult("Command9"); // response
-        }
-
-        public static void LogHttpRequestBody(SqlConnection connection, string requestBody)
-        {
-            var httpRequestString = $"INSERT INTO dbo.HttpRequests ([HttpRequestBody], [DateCreated]) VALUES (@param1, @param2)";
-            using (SqlCommand sqlCommand2 = new SqlCommand())
-            {
-                sqlCommand2.Connection = connection;
-                sqlCommand2.CommandText = httpRequestString;
-                sqlCommand2.Parameters.AddWithValue("@param1", requestBody);
-                sqlCommand2.Parameters.AddWithValue("@param2", DateTime.Now);
-                sqlCommand2.ExecuteNonQuery();
-            }
+            return new OkObjectResult(response); // response
         }
 
         public static string FindItem(string item, SqlConnection connection, ILogger log)
@@ -139,7 +142,14 @@ namespace FindyBot3000.AzureFunction
                             });
                     }
 
-                    string jsonQueryResponse = JsonConvert.SerializeObject(jsonObjects);
+                    var response = new
+                    {
+                        Command = Command.Find,
+                        Count = jsonObjects.Count,
+                        Result = jsonObjects
+                    };
+
+                    string jsonQueryResponse = JsonConvert.SerializeObject(response);
                     log.LogInformation(jsonQueryResponse);
 
                     return jsonQueryResponse;
@@ -191,7 +201,14 @@ FROM dbo.Item i JOIN
                             });
                     }
 
-                    string jsonQueryResponse = JsonConvert.SerializeObject(jsonObjects);
+                    var response = new
+                    {
+                        Command = Command.FindTags,
+                        Count = jsonObjects.Count,
+                        Result = jsonObjects
+                    };
+
+                    string jsonQueryResponse = JsonConvert.SerializeObject(response);
                     log.LogInformation(jsonQueryResponse);
 
                     return jsonQueryResponse;
@@ -219,28 +236,17 @@ FROM dbo.Item i JOIN
 
         // }
 
-
-        /// <summary>
-        /// Sourced from: https://stackoverflow.com/questions/51719462/httprequest-describable-to-string
-        /// </summary>
-        /// <param name="request"></param>
-        /// <returns>Le stringified http request</returns>
-        public static string GetDetails(HttpRequest request)
+        public static void LogHttpRequestBody(SqlConnection connection, string requestBody)
         {
-            string baseUrl = $"{request.Scheme}://{request.Host}{request.Path}{request.QueryString.Value}";
-            StringBuilder sbHeaders = new StringBuilder();
-            foreach (var header in request.Headers)
-                sbHeaders.Append($"{header.Key}: {header.Value}\n");
-
-            string body = "no-body";
-            if (request.Body.CanSeek)
+            var httpRequestString = $"INSERT INTO dbo.HttpRequests ([HttpRequestBody], [DateCreated]) VALUES (@param1, @param2)";
+            using (SqlCommand sqlCommand2 = new SqlCommand())
             {
-                request.Body.Seek(0, SeekOrigin.Begin);
-                using (StreamReader sr = new StreamReader(request.Body))
-                    body = sr.ReadToEnd();
+                sqlCommand2.Connection = connection;
+                sqlCommand2.CommandText = httpRequestString;
+                sqlCommand2.Parameters.AddWithValue("@param1", requestBody);
+                sqlCommand2.Parameters.AddWithValue("@param2", DateTime.Now);
+                sqlCommand2.ExecuteNonQuery();
             }
-
-            return $"{request.Protocol} {request.Method} {baseUrl}\n\n{sbHeaders}\n{body}";
         }
     }
 }

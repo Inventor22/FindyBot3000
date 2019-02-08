@@ -198,24 +198,22 @@ void callAzureFunction(const char* command, const char* payload)
 // Todo - Update to fetch from DB
 void findItem(const char *data)
 {
-  if (data == NULL) return;
-  callAzureFunction("find", jsonData);
+  callAzureFunction("find", data);
 }
 
 void findTags(const char *data)
 {
-  if (data == NULL) return;
-  callAzureFunction("findtags", jsonData);
+  callAzureFunction("findtags", data);
 }
 
 void insertItem(const char *data)
 {
-
+  callAzureFunction("insert", data);
 }
 
 void removeItem(const char *data)
 {
-
+  callAzureFunction("remove", data);
 }
 
 // Turn the LED matrix power supply relay on or off
@@ -251,7 +249,7 @@ void setBrightness(const char *data)
 // the findItem function above
 void azureFunctionEventResponseHandler(const char *event, const char *data)
 {
-  Serial.println("azureFunctionEventResponseHandler");
+  Serial.printlnf("azureFunctionEventResponseHandler\nevent: %s\ndata: %s", event, data);
   // if (data == NULL) return;
   //
   // Serial.println(data);
