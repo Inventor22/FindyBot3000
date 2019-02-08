@@ -15,9 +15,9 @@ using Microsoft.Extensions.Configuration;
 
 namespace FindyBot3000.AzureFunction
 {
-    public static class QueryDatabaseFunction
+    public static class SqlCommandAzureFunction
     {
-        [FunctionName("QueryDatabaseFunction")]
+        [FunctionName("SqlCommandAzureFunction")]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)] HttpRequest req,
             ILogger log,
