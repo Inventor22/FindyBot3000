@@ -104,7 +104,7 @@ bool displayOn = false;
 void googleAssistantEventHandler(const char *event, const char *data);
 
 // Webhook response handler function prototypes
-void databaseQueryEventResponseHandler(const char *event, const char *data);
+void azureFunctionEventResponseHandler(const char *event, const char *data);
 
 // Program
 void setup()
@@ -116,7 +116,7 @@ void setup()
   Particle.subscribe("Google_", googleAssistantEventHandler);
 
   // Handle Azure Function web hook response
-  Particle.subscribe("hook-response/databaseQueryEvent", databaseQueryEventResponseHandler, MY_DEVICES);
+  Particle.subscribe("hook-response/callAzureFunctionEvent", azureFunctionEventResponseHandler, MY_DEVICES);
 
   // Start FindyBot3000 with the distplay off
   pinMode(POWER_SUPPLY_RELAY_PIN, OUTPUT);
@@ -183,43 +183,29 @@ void googleAssistantEventHandler(const char* event, const char* data)
   }
 }
 
+void callAzureFunction(const char* command, const char* payload)
+{
+  char jsonData[255];
+  sprintf(jsonData, "{\"command\":\"%s\", \"data\":\"%s\"}", command, payload);
+  Serial.println(jsonData);
+
+  // This event is tied to a webhook created in Particle Console
+  // https://console.particle.io/integrations
+  // The webhook calls an Azure Function, passing along with it a json payload eh
+  Particle.publish("callAzureFunctionEvent", jsonData, PRIVATE);
+}
+
 // Todo - Update to fetch from DB
 void findItem(const char *data)
 {
   if (data == NULL) return;
-  //text = data; // built in operator to convert char* to String
-  //textLength = text.length();
-
-  Serial.println("findItem: " + text);
-
-  char jsonData[255];
-  sprintf(jsonData, "{\"command\":\"find\", \"data\":\"%s\"}", data);
-
-  Serial.println(jsonData);
-
-  // This function is tied to a webhook created in Particle Console
-  // https://console.particle.io/integrations
-  // The webhook calls an Azure Function, passing along with it a json payload eh
-  Particle.publish("databaseQueryEvent", jsonData, PRIVATE);
+  callAzureFunction("find", jsonData);
 }
 
 void findTags(const char *data)
 {
   if (data == NULL) return;
-  //text = data; // built in operator to convert char* to String
-  //textLength = text.length();
-
-  Serial.println("findTags: " + text);
-
-  char jsonData[255];
-  sprintf(jsonData, "{\"command\":\"findtags\", \"data\":\"%s\"}", data);
-
-  Serial.println(jsonData);
-
-  // This function is tied to a webhook created in Particle Console
-  // https://console.particle.io/integrations
-  // The webhook calls an Azure Function, passing along with it a json payload eh
-  Particle.publish("databaseQueryEvent", jsonData, PRIVATE);
+  callAzureFunction("findtags", jsonData);
 }
 
 void insertItem(const char *data)
@@ -263,9 +249,9 @@ void setBrightness(const char *data)
 
 // This function handles the response from the Azure Function triggered by
 // the findItem function above
-void databaseQueryEventResponseHandler(const char *event, const char *data)
+void azureFunctionEventResponseHandler(const char *event, const char *data)
 {
-  Serial.println("databaseQueryEventResponseHandler");
+  Serial.println("azureFunctionEventResponseHandler");
   // if (data == NULL) return;
   //
   // Serial.println(data);
@@ -292,7 +278,7 @@ void databaseQueryEventResponseHandler(const char *event, const char *data)
   // int column = response["Column"];
   //
   // String responseMsg = item;
-  // Serial.println("databaseQueryEventResponseHandler: " + responseMsg + ", Quantity: " + quantity + ", Row: " + row + ", Column: " + column);
+  // Serial.println("azureFunctionEventResponseHandler: " + responseMsg + ", Quantity: " + quantity + ", Row: " + row + ", Column: " + column);
   //
   // text = responseMsg;
   text = data;
