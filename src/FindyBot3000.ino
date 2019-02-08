@@ -148,54 +148,6 @@ void loop()
   scrollDisplay();
 }
 
-void lightBox(int row, int col, uint16_t color)
-{
-  //  if (!((0 <= row && row < 8 && 0 <= col && col < 16)
-  //     || (8 <= row && row < 14 && 0 <= col && col < 8))) return;
-
-  int ledCount;
-  int ledOffset;
-
-  if (row < 8) {
-    ledCount = boxLedWidthByColumnTop[col];
-    ledOffset = boxLedOffsetByColumnTop[col];
-  } else {
-    ledCount = boxLedWidthByColumnBottom[col];
-    ledOffset = boxLedOffsetByColumnBottom[col];
-  }
-
-  Serial.printlnf("row: %d, col: %d, count: %d, offset: %d", row, col, ledCount, ledOffset);
-
-  matrix.fillScreen(0);
-
-  for (int i = 0; i < ledCount; i++) {
-    matrix.drawPixel(ledOffset + i, row, color);
-  }
-
-  matrix.show();
-}
-
-void scrollDisplay()
-{
-  matrix.fillScreen(0);
-  matrix.setCursor(scrollPosition, 0);
-  matrix.print(text);
-
-  for (int i = 0; i < textLength/2; i++) {
-    matrix.drawBitmap(scrollPosition + i*LED_MATRIX_CHAR_WIDTH*2, 8, fire, 8, 6, colors[0 /*(scrollCount+i)%colorCount*/]);
-  }
-
-  // Change the text color on the next scroll through
-  if (--scrollPosition < -textLength*LED_MATRIX_CHAR_WIDTH) {
-    scrollPosition = matrix.width();
-    if(++scrollCount >= colorCount) scrollCount = 0;
-    matrix.setTextColor(colors[scrollCount]);
-  }
-
-  matrix.show();
-  //delay(10);
-}
-
 struct CommandHandler
 {
   char* command;
@@ -206,6 +158,7 @@ struct CommandHandler
 const CommandHandler commands[] =
 {
   { "FindItem", findItem },
+  { "FindTags", findTags },
   { "InsertItem", insertItem },
   { "RemoveItem", removeItem },
   { "SetBrightness", setBrightness },
@@ -214,9 +167,9 @@ const CommandHandler commands[] =
 
 void googleAssistantEventHandler(const char* event, const char* data)
 {
-  if (event == NULL) return;
+  if (event == NULL || data == NULL) return;
 
-  Serial.printf("googleAssistantEventHandler event: %s, data: %s\n", event, data);
+  Serial.printlnf("googleAssistantEventHandler event: %s, data: %s", event, data);
 
   // loop through each command until a match is found; then call the associated
   // handler
@@ -241,6 +194,25 @@ void findItem(const char *data)
 
   char jsonData[255];
   sprintf(jsonData, "{\"command\":\"find\", \"data\":\"%s\"}", data);
+
+  Serial.println(jsonData);
+
+  // This function is tied to a webhook created in Particle Console
+  // https://console.particle.io/integrations
+  // The webhook calls an Azure Function, passing along with it a json payload eh
+  Particle.publish("databaseQueryEvent", jsonData, PRIVATE);
+}
+
+void findTags(const char *data)
+{
+  if (data == NULL) return;
+  //text = data; // built in operator to convert char* to String
+  //textLength = text.length();
+
+  Serial.println("findTags: " + text);
+
+  char jsonData[255];
+  sprintf(jsonData, "{\"command\":\"findtags\", \"data\":\"%s\"}", data);
 
   Serial.println(jsonData);
 
@@ -329,6 +301,54 @@ void databaseQueryEventResponseHandler(const char *event, const char *data)
   setDisplay(ON);
 }
 
+void lightBox(int row, int col, uint16_t color)
+{
+  //  if (!((0 <= row && row < 8 && 0 <= col && col < 16)
+  //     || (8 <= row && row < 14 && 0 <= col && col < 8))) return;
+
+  int ledCount;
+  int ledOffset;
+
+  if (row < 8) {
+    ledCount = boxLedWidthByColumnTop[col];
+    ledOffset = boxLedOffsetByColumnTop[col];
+  } else {
+    ledCount = boxLedWidthByColumnBottom[col];
+    ledOffset = boxLedOffsetByColumnBottom[col];
+  }
+
+  Serial.printlnf("row: %d, col: %d, count: %d, offset: %d", row, col, ledCount, ledOffset);
+
+  matrix.fillScreen(0);
+
+  for (int i = 0; i < ledCount; i++) {
+    matrix.drawPixel(ledOffset + i, row, color);
+  }
+
+  matrix.show();
+}
+
+void scrollDisplay()
+{
+  matrix.fillScreen(0);
+  matrix.setCursor(scrollPosition, 0);
+  matrix.print(text);
+
+  for (int i = 0; i < textLength/2; i++) {
+    matrix.drawBitmap(scrollPosition + i*LED_MATRIX_CHAR_WIDTH*2, 8, fire, 8, 6, colors[0 /*(scrollCount+i)%colorCount*/]);
+  }
+
+  // Change the text color on the next scroll through
+  if (--scrollPosition < -textLength*LED_MATRIX_CHAR_WIDTH) {
+    scrollPosition = matrix.width();
+    if(++scrollCount >= colorCount) scrollCount = 0;
+    matrix.setTextColor(colors[scrollCount]);
+  }
+
+  matrix.show();
+  //delay(10);
+}
+
 void setDisplay(bool state)
 {
   if (displayOn == state) return;
@@ -345,10 +365,7 @@ void setDisplay(bool state)
   displayOn = state;
 }
 
-// Testing functions
-// Wheel function from https://github.com/adafruit/Adafruit_NeoPixel/blob/312693bfce447095ff0d8b6f6a1cc569415d77d7/examples/strandtest/strandtest.ino#L123
-// Input a value 0 to 255 to get a color value.
-// The colours are a transition r - g - b - back to r.
+/********** Testing functions **********/
 uint32_t Wheel(uint8_t WheelPos) {
   WheelPos = 255 - WheelPos;
   if(WheelPos < 85) {
