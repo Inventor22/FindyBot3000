@@ -101,7 +101,7 @@ namespace FindyBot3000.AzureFunction
                 }
             }
 
-            return (ActionResult)new OkObjectResult("Command8"); // response
+            return (ActionResult)new OkObjectResult("Command9"); // response
         }
 
         public static void LogHttpRequestBody(SqlConnection connection, string requestBody)
