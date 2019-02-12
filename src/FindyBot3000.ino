@@ -150,19 +150,27 @@ void loop()
 
 struct CommandHandler
 {
-  char* command;
+  const char* command;
   void (*handle) (const char* data);
 };
+
+const char* FindItem = "FindItem";
+const char* FindTags = "FindTags";
+const char* InsertItem = "InsertItem";
+const char* RemoveItem = "RemoveItem";
+const char* AddTags = "AddTags";
+const char* SetBrightness = "SetBrightness";
+const char* SetDisplay = "SetDisplay";
 
 // Function callbacks
 const CommandHandler commands[] =
 {
-  { "FindItem", findItem },
-  { "FindTags", findTags },
-  { "InsertItem", insertItem },
-  { "RemoveItem", removeItem },
-  { "SetBrightness", setBrightness },
-  { "SetDisplay", setDisplay }
+  { FindItem, findItem },
+  { FindTags, findTags },
+  { InsertItem, insertItem },
+  { RemoveItem, removeItem },
+  { SetBrightness, setBrightness },
+  { SetDisplay, setDisplay }
 };
 
 void googleAssistantEventHandler(const char* event, const char* data)
@@ -173,10 +181,8 @@ void googleAssistantEventHandler(const char* event, const char* data)
 
   // loop through each command until a match is found; then call the associated
   // handler
-  for (CommandHandler cmd : commands)
-  {
-    if (strstr(event, cmd.command))
-    {
+  for (CommandHandler cmd : commands) {
+    if (strstr(event, cmd.command)) {
       cmd.handle(data);
       break;
     }
@@ -245,12 +251,61 @@ void setBrightness(const char *data)
   }
 }
 
-// This function handles the response from the Azure Function triggered by
-// the findItem function above
+struct ResponseHandler
+{
+  const char* command;
+  void (*handle) (JsonObject& response);
+};
+
+const ResponseHandler responseHandlers[] =
+{
+  { FindItem, findItemResponseHandler },
+  { FindTags, findTagsResponseHandler },
+  { InsertItem, insertItemResponseHandler },
+  { RemoveItem, removeItemResponseHandler },
+};
+
+// This function handles the webhook-response from the Azure Function
 void azureFunctionEventResponseHandler(const char *event, const char *data)
 {
   Serial.printlnf("azureFunctionEventResponseHandler\nevent: %s\ndata: %s", event, data);
-  // if (data == NULL) return;
+  if (data == NULL) return;
+
+  JsonObject& responseJson = jsonBuffer.parseObject(data);
+  const char* cmd = responseJson["Command"];
+
+  for (ResponseHandler responseHandler : responseHandlers) {
+    if (strcmp(cmd, responseHandler.command) == 0) {
+      responseHandler.handle(responseJson);
+    }
+  }
+
+  setDisplay(ON);
+}
+
+int sRow, sCol;
+uint16_t sColor;
+bool sSet = false;
+
+void findItemResponseHandler(JsonObject& json)
+{
+  int count = json["Count"];
+  JsonObject& result = json["Result"][0];
+
+  const char* item = result["Name"];
+  int quantity = result["Quantity"];
+  int row = result["Row"];
+  int column = result["Column"];
+
+  //lightBox(row, column, colors[1]);
+  sRow = row;
+  sCol = column;
+  sColor = colors[1];
+  sSet = true;
+
+  text = item;
+  textLength = text.length();
+
   //
   // Serial.println(data);
   //
@@ -279,11 +334,24 @@ void azureFunctionEventResponseHandler(const char *event, const char *data)
   // Serial.println("azureFunctionEventResponseHandler: " + responseMsg + ", Quantity: " + quantity + ", Row: " + row + ", Column: " + column);
   //
   // text = responseMsg;
-  text = data;
-  textLength = text.length();
-
-  setDisplay(ON);
 }
+
+void findTagsResponseHandler(JsonObject& json)
+{
+
+}
+
+void insertItemResponseHandler(JsonObject& json)
+{
+
+}
+
+void removeItemResponseHandler(JsonObject& json)
+{
+
+}
+
+
 
 void lightBox(int row, int col, uint16_t color)
 {
@@ -329,6 +397,10 @@ void scrollDisplay()
     matrix.setTextColor(colors[scrollCount]);
   }
 
+  if (sSet) {
+    lightBox(sRow, sCol, sColor);
+  }
+
   matrix.show();
   //delay(10);
 }
@@ -350,7 +422,8 @@ void setDisplay(bool state)
 }
 
 /********** Testing functions **********/
-uint32_t Wheel(uint8_t WheelPos) {
+uint32_t Wheel(uint8_t WheelPos)
+{
   WheelPos = 255 - WheelPos;
   if(WheelPos < 85) {
     return matrix.Color(255 - WheelPos * 3, 0, WheelPos * 3);

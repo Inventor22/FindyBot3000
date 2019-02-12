@@ -17,11 +17,11 @@ namespace FindyBot3000.AzureFunction
 {
     public static class Command
     {
-        public const string Find = "find";
-        public const string FindTags = "findtags";
-        public const string Insert = "insert";
-        public const string Remove = "remove";
-        public const string AddTags = "addtags";
+        public const string Find = "FindItem";
+        public const string FindTags = "FindTags";
+        public const string Insert = "InsertItem";
+        public const string Remove = "RemoveItem";
+        public const string AddTags = "AddTags";
     }
 
     public static class SqlCommandAzureFunction
