@@ -17,10 +17,10 @@ namespace FindyBot3000.AzureFunction
 {
     public static class Command
     {
-        public const string Find = "FindItem";
+        public const string FindItem = "FindItem";
         public const string FindTags = "FindTags";
-        public const string Insert = "InsertItem";
-        public const string Remove = "RemoveItem";
+        public const string InsertItem = "InsertItem";
+        public const string RemoveItem = "RemoveItem";
         public const string AddTags = "AddTags";
     }
 
@@ -74,9 +74,9 @@ namespace FindyBot3000.AzureFunction
                 string command = commands.command;
                 string data = commands.data;
 
-                switch (command.ToLowerInvariant())
+                switch (command)
                 {
-                    case Command.Find:
+                    case Command.FindItem:
                         response = FindItem(data, connection, log);
                         break;
 
@@ -84,16 +84,16 @@ namespace FindyBot3000.AzureFunction
                         response = FindTags(data, connection, log);
                         break;
 
-                    case Command.Insert:
-                        response = "insert";
+                    case Command.InsertItem:
+                        response = Command.InsertItem;
                         break;
 
-                    case Command.Remove:
-                        response = "remove";
+                    case Command.RemoveItem:
+                        response = Command.RemoveItem;
                         break;
 
                     case Command.AddTags:
-                        response = "addtags";
+                        response = Command.AddTags;
                         break;
                 }
 
@@ -144,7 +144,7 @@ namespace FindyBot3000.AzureFunction
 
                     var response = new
                     {
-                        Command = Command.Find,
+                        Command = Command.FindItem,
                         Count = jsonObjects.Count,
                         Result = jsonObjects
                     };

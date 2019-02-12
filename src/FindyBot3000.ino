@@ -204,22 +204,22 @@ void callAzureFunction(const char* command, const char* payload)
 // Todo - Update to fetch from DB
 void findItem(const char *data)
 {
-  callAzureFunction("find", data);
+  callAzureFunction(FindItem, data);
 }
 
 void findTags(const char *data)
 {
-  callAzureFunction("findtags", data);
+  callAzureFunction(FindTags, data);
 }
 
 void insertItem(const char *data)
 {
-  callAzureFunction("insert", data);
+  callAzureFunction(InsertItem, data);
 }
 
 void removeItem(const char *data)
 {
-  callAzureFunction("remove", data);
+  callAzureFunction(RemoveItem, data);
 }
 
 // Turn the LED matrix power supply relay on or off
