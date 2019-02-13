@@ -23,7 +23,7 @@
 #define ON true
 #define OFF false
 
-StaticJsonBuffer<200> jsonBuffer;
+StaticJsonBuffer<500> jsonBuffer;
 
 static const unsigned char PROGMEM fire[] = {
   0B00010000,
@@ -271,8 +271,35 @@ void azureFunctionEventResponseHandler(const char *event, const char *data)
   Serial.printlnf("azureFunctionEventResponseHandler\nevent: %s\ndata: %s", event, data);
   if (data == NULL) return;
 
-  JsonObject& responseJson = jsonBuffer.parseObject(data);
+  Serial.println("{\"Command\":\"FindItem\",\"Count\":1,\"Result\":[{\"Name\":\"AA Battery\",\"Quantity\":2,\"Row\":0,\"Column\":0}]}");
+
+  int dataLen = strlen(data);
+  char msg[dataLen-1]; // Account for null terminator, but remove two chars to account for the start and end double quotes
+  int i = 0;
+  int j = 0;
+  for (int i = 1; i < dataLen-1; i++)
+  {
+    if (data[i] == '\\') continue;
+    msg[j++] = data[i];
+  }
+  msg[dataLen-1] = '\0'; // Terminate the string
+
+  //strcpy(msg, data);
+  Serial.println("------------------------------------");
+  Serial.println(msg);
+  Serial.println("------------------------------------");
+
+  JsonObject& responseJson = jsonBuffer.parseObject(msg);
+
+  if (!responseJson.success()) {
+    Serial.println("Pasing JSON failed");
+    return;
+  }
+
   const char* cmd = responseJson["Command"];
+
+  Serial.print("Cmd2: ");
+  Serial.println(cmd);
 
   for (ResponseHandler responseHandler : responseHandlers) {
     if (strcmp(cmd, responseHandler.command) == 0) {
@@ -302,6 +329,8 @@ void findItemResponseHandler(JsonObject& json)
   sCol = column;
   sColor = colors[1];
   sSet = true;
+
+  Serial.printlnf("item: %s, row: %d, col: %d, quantity: %d", item, row, column, quantity);
 
   text = item;
   textLength = text.length();
@@ -369,7 +398,7 @@ void lightBox(int row, int col, uint16_t color)
     ledOffset = boxLedOffsetByColumnBottom[col];
   }
 
-  Serial.printlnf("row: %d, col: %d, count: %d, offset: %d", row, col, ledCount, ledOffset);
+  //Serial.printlnf("row: %d, col: %d, count: %d, offset: %d", row, col, ledCount, ledOffset);
 
   matrix.fillScreen(0);
 
