@@ -25,13 +25,24 @@
 
 StaticJsonBuffer<500> jsonBuffer;
 
-static const unsigned char PROGMEM fire[] = {
+const PROGMEM unsigned char fire[] = {
   0B00010000,
   0B01100100,
   0B11100010,
   0B01110000,
   0B00111000,
   0B00000000
+};
+
+const PROGMEM unsigned char smile[] = {
+  0B00000000, 0B00000000,
+  0B00011100, 0B00111000,
+  0B00100010, 0B01000100,
+  0B00000000, 0B00000000,
+  0B11000000, 0B00000011,
+  0B01100000, 0B00000110,
+  0B00011111, 0B11111000,
+  0B00000000, 0B00000000
 };
 
 const int boxLedOffsetByColumnTop[] = {
@@ -170,7 +181,8 @@ const CommandHandler commands[] =
   { InsertItem, insertItem },
   { RemoveItem, removeItem },
   { SetBrightness, setBrightness },
-  { SetDisplay, setDisplay }
+  { SetDisplay, setDisplay },
+  { "ThankGen", thankGen }
 };
 
 void googleAssistantEventHandler(const char* event, const char* data)
@@ -199,6 +211,13 @@ void callAzureFunction(const char* command, const char* payload)
   // https://console.particle.io/integrations
   // The webhook calls an Azure Function, passing along with it a json payload eh
   Particle.publish("callAzureFunctionEvent", jsonData, PRIVATE);
+}
+
+void thankGen(const char* data)
+{
+  text = "T H A N K S  G E N";
+  textLength = text.length();
+  setDisplay(ON);
 }
 
 // Todo - Update to fetch from DB
@@ -334,35 +353,6 @@ void findItemResponseHandler(JsonObject& json)
 
   text = item;
   textLength = text.length();
-
-  //
-  // Serial.println(data);
-  //
-  // JsonArray& root = jsonBuffer.parseArray(data);
-  //
-  // if (!root.success()) {
-  //   Serial.println("parseObject() failed");
-  //   return;
-  // }
-  //
-  // Serial.println("Array size: " + root.size());
-  //
-  // if (root.size() > 1)
-  // {
-  //   return;
-  // }
-  //
-  // JsonObject& response = root[0];
-  //
-  // const char* item = response["Name"];
-  // int quantity = response["Quantity"];
-  // int row = response["Row"];
-  // int column = response["Column"];
-  //
-  // String responseMsg = item;
-  // Serial.println("azureFunctionEventResponseHandler: " + responseMsg + ", Quantity: " + quantity + ", Row: " + row + ", Column: " + column);
-  //
-  // text = responseMsg;
 }
 
 void findTagsResponseHandler(JsonObject& json)
@@ -379,7 +369,6 @@ void removeItemResponseHandler(JsonObject& json)
 {
 
 }
-
 
 
 void lightBox(int row, int col, uint16_t color)
@@ -400,14 +389,16 @@ void lightBox(int row, int col, uint16_t color)
 
   //Serial.printlnf("row: %d, col: %d, count: %d, offset: %d", row, col, ledCount, ledOffset);
 
-  matrix.fillScreen(0);
+  //matrix.fillScreen(0);
 
   for (int i = 0; i < ledCount; i++) {
     matrix.drawPixel(ledOffset + i, row, color);
   }
 
-  matrix.show();
+  //matrix.show();
 }
+
+int smileOffset = 16+8;
 
 void scrollDisplay()
 {
@@ -415,12 +406,14 @@ void scrollDisplay()
   matrix.setCursor(scrollPosition, 0);
   matrix.print(text);
 
-  for (int i = 0; i < textLength/2; i++) {
+  for (int i = 0; i < textLength/2 + (smileOffset/LED_MATRIX_CHAR_WIDTH)-2; i++) {
     matrix.drawBitmap(scrollPosition + i*LED_MATRIX_CHAR_WIDTH*2, 8, fire, 8, 6, colors[0 /*(scrollCount+i)%colorCount*/]);
   }
 
+  matrix.drawBitmap(scrollPosition + textLength*LED_MATRIX_CHAR_WIDTH + 8, 0, smile, 16, 8, colors[2]);
+
   // Change the text color on the next scroll through
-  if (--scrollPosition < -textLength*LED_MATRIX_CHAR_WIDTH) {
+  if (--scrollPosition < -textLength*LED_MATRIX_CHAR_WIDTH - smileOffset) {
     scrollPosition = matrix.width();
     if(++scrollCount >= colorCount) scrollCount = 0;
     matrix.setTextColor(colors[scrollCount]);
