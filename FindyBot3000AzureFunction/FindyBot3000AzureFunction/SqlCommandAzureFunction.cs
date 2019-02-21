@@ -310,16 +310,17 @@ ORDER BY t.TagsMatched DESC");
             string itemLower = item.ToLowerInvariant();
             IEnumerable<string> tags = itemLower.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Select(a => a.Trim());
             
-            var checkIfExistsQuery = $@"SELECT Name FROM dbo.Items WHERE LOWER(Items.Name) LIKE '{itemLower}'";
+            var checkIfExistsQuery = $@"SELECT Name,Quantity,Row,Col FROM dbo.Items WHERE LOWER(Items.Name) LIKE '{itemLower}'";
 
             using (SqlCommand command = new SqlCommand(checkIfExistsQuery, connection))
             {
+                string jsonQueryResponse = string.Empty;
                 SqlDataReader reader = command.ExecuteReader();
-
                 try
                 {
                     if (reader.HasRows)
                     {
+                        // There will only be one object in this list
                         List<object> jsonObjects = new List<object>();
                         while (reader.Read())
                         {
@@ -327,7 +328,7 @@ ORDER BY t.TagsMatched DESC");
                                 new
                                 {
                                     Name = (string)reader["Name"],
-                                    Quantity = (int)reader["Quantity"],
+                                    Quantity = (int)reader["Quantity"] + quantity,
                                     Row = (int)reader["Row"],
                                     Column = (int)reader["Col"]
                                 });
@@ -340,16 +341,26 @@ ORDER BY t.TagsMatched DESC");
                             Result = jsonObjects
                         };
 
-                        string jsonQueryResponse = JsonConvert.SerializeObject(response);
+                        jsonQueryResponse = JsonConvert.SerializeObject(response);
                         log.LogInformation(jsonQueryResponse);
-
-                        return jsonQueryResponse;
                     }
+                }
+                catch (Exception ex)
+                {
+                    log.LogInformation(ex.Message);
                 }
                 finally
                 {
                     // Always call Close when done reading.
                     reader.Close();
+                }
+
+                command.CommandText = $"UPDATE dbo.Items SET Items.Quantity = Items.Quantity + {quantity} WHERE LOWER(Items.Name) = '{itemLower}'";
+                command.ExecuteNonQuery();
+
+                if (!string.IsNullOrEmpty(jsonQueryResponse))
+                {
+                    return jsonQueryResponse;
                 }
             }            
 
@@ -423,9 +434,12 @@ VALUES (@param1, @param2, @param3, @param4, @param5, @param6, @param7)");
 
             // Here we build a SQL insert statement with possibly multiple insert values:
             // INSERT INTO dbo.Tags ([Name], [Tag]) VALUES ('AA Battery', 'aa'),('AA Battery', 'battery')
-            string insertTagsCommand = 
-                "INSERT INTO dbo.Tags ([Name], [Tag]) VALUES "
-                + string.Join(",", tags.Select((_, index) => $"(@param1, @param{index + 2})"));
+            string insertTagsCommand = $@"
+MERGE INTO dbo.Tags AS Target
+USING(VALUES {string.Join(",", tags.Select((_, index) => $"(@param1, @param{index + 2})"))}) AS Source (Name, Tag)
+ON Target.Name = Source.Name AND Target.Tag = Source.Tag
+WHEN NOT MATCHED BY Target THEN
+INSERT(Name, Tag) VALUES(Source.Name, Source.Tag);";                
 
             using (SqlCommand sqlCommand = new SqlCommand())
             {
@@ -438,7 +452,7 @@ VALUES (@param1, @param2, @param3, @param4, @param5, @param6, @param7)");
                     sqlCommand.Parameters.AddWithValue($"param{i++}", tag);
                 }
                 sqlCommand.ExecuteNonQuery();
-            }            
+            }
 
             object insertResponse = new
             {
