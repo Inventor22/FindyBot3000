@@ -1,0 +1,7 @@
+{
+  "name": "databaseQueryEvent",
+  "data": "{\"command\":\"InsertItem\", \"data\":{\"Item\":\"Green LED\",\"Quantity\":22,\"IsSmallBox\":true}}",
+  "ttl": 60,
+  "published_at": "2019-02-20T02:23:55.127Z",
+  "coreid": "3e0023000447343339373536"
+}

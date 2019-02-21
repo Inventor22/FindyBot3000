@@ -27,7 +27,7 @@ namespace FindyBot3000.AzureFunction
     // Sql Table column names
     public class Dbo
     {
-        public class Item
+        public class Items
         {
             public static string Name = "Name";
             public static string Quantity = "Quantity";
@@ -136,16 +136,16 @@ namespace FindyBot3000.AzureFunction
                 }
 
                 string unescapedJson = ((string)eventData.data).Replace(@"\", "");
-                dynamic commands = JsonConvert.DeserializeObject(unescapedJson);
+                dynamic jsonRequest = JsonConvert.DeserializeObject(unescapedJson);
 
-                if (commands == null || commands.command == null || commands.data == null)
+                if (jsonRequest == null || jsonRequest.command == null || jsonRequest.data == null)
                 {
                     return new BadRequestObjectResult(
                         "Could not parse command JSON in data tag");
                 }
 
-                string command = commands.command;
-                string data = commands.data;
+                string command = jsonRequest.command;
+                dynamic data = jsonRequest.data;
 
                 switch (command)
                 {
@@ -179,7 +179,7 @@ namespace FindyBot3000.AzureFunction
                         sqlCommand.CommandText = requestResponseLogString;
                         sqlCommand.Parameters.AddWithValue("@param1", DateTime.Now);
                         sqlCommand.Parameters.AddWithValue("@param2", command);
-                        sqlCommand.Parameters.AddWithValue("@param3", data.ToLowerInvariant());
+                        sqlCommand.Parameters.AddWithValue("@param3", Convert.ToString(data));
                         sqlCommand.Parameters.AddWithValue("@param4", response);
                         sqlCommand.ExecuteNonQuery();
                     }
@@ -193,9 +193,10 @@ namespace FindyBot3000.AzureFunction
             return new OkObjectResult(response); // response
         }
 
-        public static string FindItem(string item, SqlConnection connection, ILogger log)
+        public static string FindItem(dynamic jsonRequestData, SqlConnection connection, ILogger log)
         {
-            var queryString = string.Format($"SELECT * FROM dbo.Item WHERE LOWER(Item.Name) LIKE '{item.ToLowerInvariant()}'");
+            string item = jsonRequestData;
+            var queryString = string.Format($"SELECT * FROM dbo.Items WHERE LOWER(Items.Name) LIKE '{item.ToLowerInvariant()}'");
 
             using (SqlCommand command = new SqlCommand(queryString, connection))
             {
@@ -208,10 +209,10 @@ namespace FindyBot3000.AzureFunction
                         jsonObjects.Add(
                             new
                             {
-                                Name = (string)reader[Dbo.Item.Name],
-                                Quantity = (int)reader[Dbo.Item.Quantity],
-                                Row = (int)reader[Dbo.Item.Row],
-                                Column = (int)reader[Dbo.Item.Col]
+                                Name = (string)reader[Dbo.Items.Name],
+                                Quantity = (int)reader[Dbo.Items.Quantity],
+                                Row = (int)reader[Dbo.Items.Row],
+                                Column = (int)reader[Dbo.Items.Col]
                             });
                     }
 
@@ -235,8 +236,9 @@ namespace FindyBot3000.AzureFunction
             }
         }
 
-        public static string FindTags(string words, SqlConnection connection, ILogger log)
+        public static string FindTags(dynamic jsonRequestData, SqlConnection connection, ILogger log)
         {
+            string words = jsonRequestData;
             // Take a string of words: "Green motor driver"
             // Split it into an array of strings: string[] = { "Green", "motor", "driver" }
             // Format the words to be suited for the SQL-query: "'green','motor','driver'"
@@ -246,7 +248,7 @@ namespace FindyBot3000.AzureFunction
 
             var queryString = string.Format(
 $@"SELECT i.Name, i.Quantity, i.Row, i.Col, t.TagsMatched
-FROM dbo.Item i JOIN
+FROM dbo.Items i JOIN
 (
     SELECT Name, COUNT(Name) TagsMatched
     FROM dbo.Tags
@@ -295,25 +297,28 @@ ORDER BY t.TagsMatched DESC");
         }
 
         // 1. Check if item exists, if yes, return the box it's in.
-        // 2. Query for currently used boxes, find an empty box if one exists, and return it's location
-        public static string InsertItem(string itemAndQuantity, SqlConnection connection, ILogger log)
+        // 2. Query for currently used boxes, find an empty box if one exists, and return it's row/column location
+        // 3. Insert an entry into the Items table with the row/column info
+        // 4. If successful, insert entries into the Tags table with the words from the item name as tags
+        // 4. Return a response with data indicating the insert was successful, and the row/column info
+        public static string InsertItem(dynamic jsonRequestData, SqlConnection connection, ILogger log)
         {
-            dynamic itemAndQuantityJson = JsonConvert.DeserializeObject(itemAndQuantity);
-            string item = itemAndQuantityJson["Item"];
-            int quantity = itemAndQuantityJson["Quantity"];
-            bool isSmallBox = itemAndQuantityJson["IsSmallBox"];
+            string item = jsonRequestData["Item"];
+            int quantity = jsonRequestData["Quantity"];
+            bool isSmallBox = jsonRequestData["IsSmallBox"];
 
             string itemLower = item.ToLowerInvariant();
             IEnumerable<string> tags = itemLower.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Select(a => a.Trim());
             
-            var checkIfExistsQuery = $@"SELECT Name FROM dbo.Item WHERE LOWER(Item.Name) LIKE {itemLower}";
+            var checkIfExistsQuery = $@"SELECT Name FROM dbo.Items WHERE LOWER(Items.Name) LIKE '{itemLower}'";
 
             using (SqlCommand command = new SqlCommand(checkIfExistsQuery, connection))
             {
                 SqlDataReader reader = command.ExecuteReader();
-                if (reader.HasRows)
+
+                try
                 {
-                    try
+                    if (reader.HasRows)
                     {
                         List<object> jsonObjects = new List<object>();
                         while (reader.Read())
@@ -340,36 +345,36 @@ ORDER BY t.TagsMatched DESC");
 
                         return jsonQueryResponse;
                     }
-                    finally
-                    {
-                        // Always call Close when done reading.
-                        reader.Close();
-                    }
                 }
-            }
+                finally
+                {
+                    // Always call Close when done reading.
+                    reader.Close();
+                }
+            }            
 
             // Item doesn't exist; insert.
             // Find existing boxes
-            var sqlAllConsumedBoxes = string.Format("SELECT ROW, COL FROM dbo.Item");
+            var sqlAllConsumedBoxes = string.Format("SELECT ROW, COL FROM dbo.Items");
             MatrixModel matrix = new MatrixModel();
 
-            using (SqlCommand command = new SqlCommand(checkIfExistsQuery, connection))
+            using (SqlCommand command = new SqlCommand(sqlAllConsumedBoxes, connection))
             {
                 SqlDataReader reader = command.ExecuteReader();
-                if (reader.HasRows)
+
+                try
                 {
-                    try
+                    if (reader.HasRows)
                     {
-                        List<object> jsonObjects = new List<object>();
                         while (reader.Read())
                         {
-                            matrix.AddItem((int)reader[Dbo.Item.Row], (int)reader[Dbo.Item.Col]);
+                            matrix.AddItem((int)reader[Dbo.Items.Row], (int)reader[Dbo.Items.Col]);
                         }
                     }
-                    finally
-                    {
-                        reader.Close();
-                    }
+                }
+                finally
+                {
+                    reader.Close();
                 }
             }
 
@@ -377,13 +382,20 @@ ORDER BY t.TagsMatched DESC");
 
             if (row == -1 && col == -1)
             {
-                return $"No {(isSmallBox ? "Small" : "Large")} boxes left!";
+                return JsonConvert.SerializeObject(
+                    new
+                    {
+                        Command = Command.InsertItem,
+                        InsertSucceeded = false,
+                        Message = $"No {(isSmallBox ? "Small" : "Large")} boxes left!"
+                    });
             }
 
             var sqlInsertString = string.Format($@"
-INSERT INTO dbo.Item([Name], [Quantity], [Row], [Column], [SmallBox], [DateCreated], [LastUpdated])
+INSERT INTO dbo.Items([Name], [Quantity], [Row], [Col], [IsSmallBox], [DateCreated], [LastUpdated])
 VALUES (@param1, @param2, @param3, @param4, @param5, @param6, @param7)");
 
+            bool insertSucceeded = false;
             using (SqlCommand sqlCommand = new SqlCommand())
             {
                 sqlCommand.Connection = connection;
@@ -395,18 +407,56 @@ VALUES (@param1, @param2, @param3, @param4, @param5, @param6, @param7)");
                 sqlCommand.Parameters.AddWithValue("@param5", isSmallBox);
                 sqlCommand.Parameters.AddWithValue("@param6", DateTime.UtcNow);
                 sqlCommand.Parameters.AddWithValue("@param7", DateTime.UtcNow);
-                sqlCommand.ExecuteNonQuery();
+                insertSucceeded = sqlCommand.ExecuteNonQuery() > 0;
             }
 
-            return Command.InsertItem;
+            if (!insertSucceeded)
+            {
+                return JsonConvert.SerializeObject(
+                    new
+                    {
+                        Command = Command.InsertItem,
+                        InsertSucceeded = false,
+                        Message = "Insert failed"
+                    });
+            }
+
+            // Here we build a SQL insert statement with possibly multiple insert values:
+            // INSERT INTO dbo.Tags ([Name], [Tag]) VALUES ('AA Battery', 'aa'),('AA Battery', 'battery')
+            string insertTagsCommand = 
+                "INSERT INTO dbo.Tags ([Name], [Tag]) VALUES "
+                + string.Join(",", tags.Select((_, index) => $"(@param1, @param{index + 2})"));
+
+            using (SqlCommand sqlCommand = new SqlCommand())
+            {
+                sqlCommand.Connection = connection;
+                sqlCommand.CommandText = insertTagsCommand;
+                sqlCommand.Parameters.AddWithValue("@param1", item);
+                int i = 2;
+                foreach(string tag in tags)
+                {
+                    sqlCommand.Parameters.AddWithValue($"param{i++}", tag);
+                }
+                sqlCommand.ExecuteNonQuery();
+            }            
+
+            object insertResponse = new
+            {
+                Command = Command.InsertItem,
+                InsertSucceeded = insertSucceeded,
+                Row = row,
+                Col = col
+            };
+
+            return JsonConvert.SerializeObject(insertResponse);
         }
 
-        public static string RemoveItem(string item, SqlConnection connection, ILogger log)
+        public static string RemoveItem(dynamic jsonRequestData, SqlConnection connection, ILogger log)
         {
             return Command.RemoveItem;
         }
 
-        public static string AddTags(string item, SqlConnection connection, ILogger log)
+        public static string AddTags(dynamic jsonRequestData, SqlConnection connection, ILogger log)
         {
             return Command.AddTags;
         }
