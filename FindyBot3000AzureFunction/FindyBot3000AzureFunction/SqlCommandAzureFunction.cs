@@ -425,8 +425,16 @@ VALUES (@param1, @param2, @param3, @param4, @param5, @param6, @param7)");
                     });
             }
 
-            // Here we build a SQL insert statement with possibly multiple insert values:
-            // INSERT INTO dbo.Tags ([Name], [Tag]) VALUES ('AA Battery', 'aa'),('AA Battery', 'battery')
+            /* Build a SQL insert statement supporting multiple insert values, without duplicating any entries:
+                 MERGE INTO dbo.Tags AS Target
+                 USING(VALUES (@param1, @param2),(@param1, @param3)) AS Source (Name, Tag)
+                 ON Target.Name = Source.Name AND Target.Tag = Source.Tag
+                 WHEN NOT MATCHED BY Target THEN
+                 INSERT(Name, Tag) VALUES(Source.Name, Source.Tag);
+            
+                After substitution:
+                USING(VALUES ('AA Battery', 'aa'),('AA Battery', 'battery')) AS Source (Name, Tag)
+            */
             string insertTagsCommand = $@"
 MERGE INTO dbo.Tags AS Target
 USING(VALUES {string.Join(",", tags.Select((_, index) => $"(@param1, @param{index + 2})"))}) AS Source (Name, Tag)
