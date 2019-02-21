@@ -15,13 +15,14 @@ using Microsoft.Extensions.Configuration;
 
 namespace FindyBot3000.AzureFunction
 {
-    public static class Command
+    public class Command
     {
         public const string FindItem = "FindItem";
         public const string FindTags = "FindTags";
         public const string InsertItem = "InsertItem";
         public const string RemoveItem = "RemoveItem";
         public const string AddTags = "AddTags";
+        public const string UpdateQuantity = "UpdateQuantity";
     }
 
     // Sql Table column names
@@ -29,13 +30,13 @@ namespace FindyBot3000.AzureFunction
     {
         public class Items
         {
-            public static string Name = "Name";
-            public static string Quantity = "Quantity";
-            public static string Row = "Row";
-            public static string Col = "Col";
-            public static string SmallBox = "SmallBox";
-            public static string DateCreated = "DateCreated";
-            public static string LastUpdated = "LastUpdated";
+            public const string Name = "Name";
+            public const string Quantity = "Quantity";
+            public const string Row = "Row";
+            public const string Col = "Col";
+            public const string SmallBox = "SmallBox";
+            public const string DateCreated = "DateCreated";
+            public const string LastUpdated = "LastUpdated";
         }
     }
 
@@ -66,33 +67,27 @@ namespace FindyBot3000.AzureFunction
         {
             if (isSmallBox)
             {
-                for (int row = 0; row < TopRows; row++)
-                {
-                    for (int col = 0; col < TopCols; col++)
-                    {
-                        if (this.TopItems[row, col] == false)
-                        {
-                            this.TopItems[row, col] = true;
-                            return (row, col);
-                        }
-                    }
-                }
+                return this.GetBoxAndUpdate(TopItems, TopRows, TopCols);
             }
             else
             {
-                for (int row = 0; row < BottomRows; row++)
+                return this.GetBoxAndUpdate(BottomItems, BottomRows, BottomCols);
+            }
+        }
+
+        private (int, int) GetBoxAndUpdate(bool[,] matrix, int rows, int cols)
+        {
+            for (int row = 0; row < rows; row++)
+            {
+                for (int col = 0; col < cols; col++)
                 {
-                    for (int col = 0; col < BottomCols; col++)
+                    if (matrix[row, col] == false)
                     {
-                        if (this.TopItems[row, col] == false)
-                        {
-                            this.TopItems[row, col] = true;
-                            return (row, col);
-                        }
+                        matrix[row, col] = true;
+                        return (row, col);
                     }
                 }
             }
-
             return (-1, -1);
         }
     }
@@ -167,6 +162,10 @@ namespace FindyBot3000.AzureFunction
 
                     case Command.AddTags:
                         response = AddTags(data, connection, log);
+                        break;
+
+                    case Command.UpdateQuantity:
+                        response = UpdateQuantity(data, connection, log);
                         break;
                 }
 
@@ -314,8 +313,8 @@ ORDER BY t.TagsMatched DESC");
 
             using (SqlCommand command = new SqlCommand(checkIfExistsQuery, connection))
             {
-                string jsonQueryResponse = string.Empty;
                 SqlDataReader reader = command.ExecuteReader();
+
                 try
                 {
                     if (reader.HasRows)
@@ -328,7 +327,7 @@ ORDER BY t.TagsMatched DESC");
                                 new
                                 {
                                     Name = (string)reader["Name"],
-                                    Quantity = (int)reader["Quantity"] + quantity,
+                                    Quantity = (int)reader["Quantity"],
                                     Row = (int)reader["Row"],
                                     Column = (int)reader["Col"]
                                 });
@@ -341,8 +340,10 @@ ORDER BY t.TagsMatched DESC");
                             Result = jsonObjects
                         };
 
-                        jsonQueryResponse = JsonConvert.SerializeObject(response);
+                        string jsonQueryResponse = JsonConvert.SerializeObject(response);
                         log.LogInformation(jsonQueryResponse);
+
+                        return jsonQueryResponse;
                     }
                 }
                 catch (Exception ex)
@@ -353,14 +354,6 @@ ORDER BY t.TagsMatched DESC");
                 {
                     // Always call Close when done reading.
                     reader.Close();
-                }
-
-                command.CommandText = $"UPDATE dbo.Items SET Items.Quantity = Items.Quantity + {quantity} WHERE LOWER(Items.Name) = '{itemLower}'";
-                command.ExecuteNonQuery();
-
-                if (!string.IsNullOrEmpty(jsonQueryResponse))
-                {
-                    return jsonQueryResponse;
                 }
             }            
 
@@ -473,6 +466,11 @@ INSERT(Name, Tag) VALUES(Source.Name, Source.Tag);";
         public static string AddTags(dynamic jsonRequestData, SqlConnection connection, ILogger log)
         {
             return Command.AddTags;
+        }
+
+        public static string UpdateQuantity(dynamic jsonRequestData, SqlConnection connection, ILogger log)
+        {
+            return Command.UpdateQuantity;
         }
 
         public static void LogHttpRequestBody(SqlConnection connection, string requestBody)
