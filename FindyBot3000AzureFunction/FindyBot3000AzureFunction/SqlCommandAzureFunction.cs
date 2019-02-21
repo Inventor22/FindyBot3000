@@ -442,7 +442,7 @@ INSERT(Name, Tag) VALUES(Source.Name, Source.Tag);";
                 int i = 2;
                 foreach(string tag in tags)
                 {
-                    sqlCommand.Parameters.AddWithValue($"param{i++}", tag);
+                    sqlCommand.Parameters.AddWithValue($"@param{i++}", tag);
                 }
                 sqlCommand.ExecuteNonQuery();
             }
