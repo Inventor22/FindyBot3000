@@ -1,0 +1,7 @@
+{
+  "name": "callAzureFunctionEvent",
+  "data": "{\"command\":\"SetQuantity\", \"data\":{\"Item\":\"Red LED\",\"Quantity\":32}}",
+  "ttl": 60,
+  "published_at": "2019-02-20T02:23:55.127Z",
+  "coreid": "deadbeef"
+}

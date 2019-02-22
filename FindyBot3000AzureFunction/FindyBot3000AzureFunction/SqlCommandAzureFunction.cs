@@ -22,7 +22,8 @@ namespace FindyBot3000.AzureFunction
         public const string InsertItem = "InsertItem";
         public const string RemoveItem = "RemoveItem";
         public const string AddTags = "AddTags";
-        public const string UpdateQuantity = "UpdateQuantity";
+        public const string AddQuantity = "AddQuantity";
+        public const string SetQuantity = "SetQuantity";
     }
 
     // Sql Table column names
@@ -164,8 +165,16 @@ namespace FindyBot3000.AzureFunction
                         response = AddTags(data, connection, log);
                         break;
 
-                    case Command.UpdateQuantity:
-                        response = UpdateQuantity(data, connection, log);
+                    case Command.AddQuantity:
+                        response = AddQuantity(data, connection, log);
+                        break;
+
+                    case Command.SetQuantity:
+                        response = SetQuantity(data, connection, log);
+                        break;
+
+                    default:
+                        response = $"Command '{command}' not supported";
                         break;
                 }
 
@@ -211,7 +220,7 @@ namespace FindyBot3000.AzureFunction
                                 Name = (string)reader[Dbo.Items.Name],
                                 Quantity = (int)reader[Dbo.Items.Quantity],
                                 Row = (int)reader[Dbo.Items.Row],
-                                Column = (int)reader[Dbo.Items.Col]
+                                Col = (int)reader[Dbo.Items.Col]
                             });
                     }
 
@@ -329,7 +338,7 @@ ORDER BY t.TagsMatched DESC";
                                     Name = (string)reader["Name"],
                                     Quantity = (int)reader["Quantity"],
                                     Row = (int)reader["Row"],
-                                    Column = (int)reader["Col"]
+                                    Col = (int)reader["Col"]
                                 });
                         }
 
@@ -518,9 +527,44 @@ ELSE CAST(0 AS BIT) END";
             return JsonConvert.SerializeObject(addTagsResponse2);
         }
 
-        public static string UpdateQuantity(dynamic jsonRequestData, SqlConnection connection, ILogger log)
+        public static string SetQuantity(dynamic jsonRequestData, SqlConnection connection, ILogger log)
         {
-            return Command.UpdateQuantity;
+            string item = jsonRequestData["Item"];
+            int quantity = jsonRequestData["Quantity"];
+
+            var setQuantityQuery = $@"
+UPDATE dbo.Items
+SET Items.Quantity = {quantity}
+WHERE LOWER(Items.Name) LIKE '{item.ToLowerInvariant()}'";
+
+            int itemsUpdated = 0;
+            using (SqlCommand command = new SqlCommand(setQuantityQuery, connection))
+            {
+                itemsUpdated = command.ExecuteNonQuery();
+            }
+
+            // Return the item, so the display lights the box
+            return FindItem(item, connection, log);
+        }
+
+        public static string AddQuantity(dynamic jsonRequestData, SqlConnection connection, ILogger log)
+        {
+            string item = jsonRequestData["Item"];
+            int quantity = jsonRequestData["Quantity"];
+
+            var updateQuantityQuery = $@"
+UPDATE dbo.Items
+SET Items.Quantity = Items.Quantity + {quantity}
+WHERE LOWER(Items.Name) LIKE '{item.ToLowerInvariant()}'";
+
+            int itemsUpdated = 0;
+            using (SqlCommand command = new SqlCommand(updateQuantityQuery, connection))
+            {
+                itemsUpdated = command.ExecuteNonQuery();
+            }
+
+            // Return the item, so the display lights the box
+            return FindItem(item, connection, log);
         }
 
         /* Build a SQL insert statement supporting multiple insert values, without duplicating any entries:
@@ -562,13 +606,13 @@ INSERT(Name, Tag) VALUES(Source.Name, Source.Tag);";
         public static void LogHttpRequestBody(SqlConnection connection, string requestBody)
         {
             var httpRequestString = $"INSERT INTO dbo.HttpRequests ([HttpRequestBody], [DateCreated]) VALUES (@param1, @param2)";
-            using (SqlCommand sqlCommand2 = new SqlCommand())
+            using (SqlCommand sqlCommand = new SqlCommand())
             {
-                sqlCommand2.Connection = connection;
-                sqlCommand2.CommandText = httpRequestString;
-                sqlCommand2.Parameters.AddWithValue("@param1", requestBody);
-                sqlCommand2.Parameters.AddWithValue("@param2", DateTime.Now);
-                sqlCommand2.ExecuteNonQuery();
+                sqlCommand.Connection = connection;
+                sqlCommand.CommandText = httpRequestString;
+                sqlCommand.Parameters.AddWithValue("@param1", requestBody);
+                sqlCommand.Parameters.AddWithValue("@param2", DateTime.Now);
+                sqlCommand.ExecuteNonQuery();
             }
         }
     }
