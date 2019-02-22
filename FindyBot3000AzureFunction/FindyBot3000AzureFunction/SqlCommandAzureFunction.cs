@@ -39,6 +39,26 @@ namespace FindyBot3000.AzureFunction
             public const string DateCreated = "DateCreated";
             public const string LastUpdated = "LastUpdated";
         }
+
+        public class Tags
+        {
+            public const string Name = "Name";
+            public const string Tag = "Tag";
+        }
+
+        public class Commands
+        {
+            public const string DateCreated = "DateCreated";
+            public const string Command = "Command";
+            public const string DataIn = "DataIn";
+            public const string DataOut = "DataOut";
+        }
+
+        public class HttpRequests
+        {
+            public const string HttpRequestBody = "HttpRequestBody";
+            public const string DateCreated = "DateCreated";
+        }
     }
 
     // This begs for a stateful azure function...
