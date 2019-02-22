@@ -1,6 +1,6 @@
 {
   "name": "callAzureFunctionEvent",
-  "data": "{\"command\":\"find\", \"data\":\"AA Battery\"}",
+  "data": "{\"command\":\"FindItem\", \"data\":\"AA Battery\"}",
   "ttl": 60,
   "published_at": "2019-01-27T02:23:55.127Z",
   "coreid": "deadbeef"

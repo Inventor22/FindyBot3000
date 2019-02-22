@@ -425,40 +425,13 @@ VALUES (@param1, @param2, @param3, @param4, @param5, @param6, @param7)");
                     });
             }
 
-            /* Build a SQL insert statement supporting multiple insert values, without duplicating any entries:
-                 MERGE INTO dbo.Tags AS Target
-                 USING(VALUES (@param1, @param2),(@param1, @param3)) AS Source (Name, Tag)
-                 ON Target.Name = Source.Name AND Target.Tag = Source.Tag
-                 WHEN NOT MATCHED BY Target THEN
-                 INSERT(Name, Tag) VALUES(Source.Name, Source.Tag);
-            
-                After substitution:
-                USING(VALUES ('AA Battery', 'aa'),('AA Battery', 'battery')) AS Source (Name, Tag)
-            */
-            string insertTagsCommand = $@"
-MERGE INTO dbo.Tags AS Target
-USING(VALUES {string.Join(",", tags.Select((_, index) => $"(@param1, @param{index + 2})"))}) AS Source (Name, Tag)
-ON Target.Name = Source.Name AND Target.Tag = Source.Tag
-WHEN NOT MATCHED BY Target THEN
-INSERT(Name, Tag) VALUES(Source.Name, Source.Tag);";                
-
-            using (SqlCommand sqlCommand = new SqlCommand())
-            {
-                sqlCommand.Connection = connection;
-                sqlCommand.CommandText = insertTagsCommand;
-                sqlCommand.Parameters.AddWithValue("@param1", item);
-                int i = 2;
-                foreach(string tag in tags)
-                {
-                    sqlCommand.Parameters.AddWithValue($"@param{i++}", tag);
-                }
-                sqlCommand.ExecuteNonQuery();
-            }
+            // Todo: Revert adding to dbo.Items if inserting to dbo.Items fails
+            int tagsAdded = InsertTags(connection, item, tags);
 
             object insertResponse = new
             {
                 Command = Command.InsertItem,
-                InsertSucceeded = insertSucceeded,
+                InsertSucceeded = insertSucceeded && tagsAdded > 0,
                 Row = row,
                 Col = col
             };
@@ -488,14 +461,102 @@ DELETE FROM dbo.Items WHERE LOWER(Items.Name) LIKE '{itemLower}';";
             }
         }
 
+        // 1. Verify item exists
+        // 2. Add tags
         public static string AddTags(dynamic jsonRequestData, SqlConnection connection, ILogger log)
         {
-            return Command.AddTags;
+            string item = jsonRequestData["Item"];
+            string itemLower = item.ToLowerInvariant();
+            string itemExistsQuery = $@"
+SELECT CASE WHEN EXISTS (
+    SELECT *
+    FROM dbo.Items
+    WHERE LOWER(Items.Name) LIKE '{itemLower}'
+)
+THEN CAST(1 AS BIT)
+ELSE CAST(0 AS BIT) END";
+
+            using (SqlCommand command = new SqlCommand(itemExistsQuery, connection))
+            {
+                SqlDataReader reader = command.ExecuteReader();
+                try
+                {
+                    if (!reader.HasRows)
+                    {
+                        var addTagsResponse = new
+                        {
+                            Command = Command.FindItem,
+                            Success = false,
+                            Message = "Item does not exist, cannot add tags"
+                        };
+
+                        string jsonQueryResponse = JsonConvert.SerializeObject(addTagsResponse);
+                        log.LogInformation(jsonQueryResponse);
+
+                        return jsonQueryResponse;
+                    }
+                }
+                finally
+                {
+                    // Always call Close when done reading.
+                    reader.Close();
+                }
+            }
+
+            string tagString = jsonRequestData["Tags"];
+            IEnumerable<string> tags = tagString.ToLowerInvariant().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Select(a => a.Trim());
+
+            int tagsAdded = InsertTags(connection, item, tags);
+
+            object addTagsResponse2 = new
+            {
+                Command = Command.AddTags,
+                Success = tagsAdded > 0,
+                Count = tagsAdded
+            };
+
+            return JsonConvert.SerializeObject(addTagsResponse2);
         }
 
         public static string UpdateQuantity(dynamic jsonRequestData, SqlConnection connection, ILogger log)
         {
             return Command.UpdateQuantity;
+        }
+
+        /* Build a SQL insert statement supporting multiple insert values, without duplicating any entries:
+             MERGE INTO dbo.Tags AS Target
+             USING(VALUES (@param1, @param2),(@param1, @param3)) AS Source (Name, Tag)
+             ON Target.Name = Source.Name AND Target.Tag = Source.Tag
+             WHEN NOT MATCHED BY Target THEN
+             INSERT(Name, Tag) VALUES(Source.Name, Source.Tag);
+
+            After substitution:
+            USING(VALUES ('AA Battery', 'aa'),('AA Battery', 'battery')) AS Source (Name, Tag)
+        */
+        private static int InsertTags(SqlConnection connection, string item, IEnumerable<string> tags)
+        {
+            string insertTagsCommand = $@"
+MERGE INTO dbo.Tags AS Target
+USING(VALUES {string.Join(",", tags.Select((_, index) => $"(@param1, @param{index + 2})"))}) AS Source (Name, Tag)
+ON Target.Name = Source.Name AND Target.Tag = Source.Tag
+WHEN NOT MATCHED BY Target THEN
+INSERT(Name, Tag) VALUES(Source.Name, Source.Tag);";
+
+            int tagsAdded = 0;
+            using (SqlCommand sqlCommand = new SqlCommand())
+            {
+                sqlCommand.Connection = connection;
+                sqlCommand.CommandText = insertTagsCommand;
+                sqlCommand.Parameters.AddWithValue("@param1", item);
+                int i = 2;
+                foreach (string tag in tags)
+                {
+                    sqlCommand.Parameters.AddWithValue($"@param{i++}", tag);
+                }
+                tagsAdded = sqlCommand.ExecuteNonQuery();
+            }
+
+            return tagsAdded;
         }
 
         public static void LogHttpRequestBody(SqlConnection connection, string requestBody)
