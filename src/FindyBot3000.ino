@@ -181,8 +181,7 @@ const CommandHandler commands[] =
   { InsertItem, insertItem },
   { RemoveItem, removeItem },
   { SetBrightness, setBrightness },
-  { SetDisplay, setDisplay },
-  { "ThankGen", thankGen }
+  { SetDisplay, setDisplay }
 };
 
 void googleAssistantEventHandler(const char* event, const char* data)
@@ -211,13 +210,6 @@ void callAzureFunction(const char* command, const char* payload)
   // https://console.particle.io/integrations
   // The webhook calls an Azure Function, passing along with it a json payload eh
   Particle.publish("callAzureFunctionEvent", jsonData, PRIVATE);
-}
-
-void thankGen(const char* data)
-{
-  text = "T H A N K S  G E N";
-  textLength = text.length();
-  setDisplay(ON);
 }
 
 // Todo - Update to fetch from DB
@@ -293,25 +285,25 @@ void azureFunctionEventResponseHandler(const char *event, const char *data)
   Serial.println("{\"Command\":\"FindItem\",\"Count\":1,\"Result\":[{\"Name\":\"AA Battery\",\"Quantity\":2,\"Row\":0,\"Column\":0}]}");
 
   int dataLen = strlen(data);
-  char msg[dataLen-1]; // Account for null terminator, but remove two chars to account for the start and end double quotes
-  int i = 0;
+  char msg[dataLen];
   int j = 0;
   for (int i = 1; i < dataLen-1; i++)
   {
     if (data[i] == '\\') continue;
     msg[j++] = data[i];
   }
-  msg[dataLen-1] = '\0'; // Terminate the string
+  msg[j] = '\0'; // Terminate the string
 
   //strcpy(msg, data);
   Serial.println("------------------------------------");
   Serial.println(msg);
   Serial.println("------------------------------------");
 
+  jsonBuffer.clear(); // Aha! This is what I needed to fix multiple FindItem calls.
   JsonObject& responseJson = jsonBuffer.parseObject(msg);
 
   if (!responseJson.success()) {
-    Serial.println("Pasing JSON failed");
+    Serial.println("Parsing JSON failed");
     return;
   }
 
@@ -341,7 +333,7 @@ void findItemResponseHandler(JsonObject& json)
   const char* item = result["Name"];
   int quantity = result["Quantity"];
   int row = result["Row"];
-  int column = result["Column"];
+  int column = result["Col"];
 
   //lightBox(row, column, colors[1]);
   sRow = row;
