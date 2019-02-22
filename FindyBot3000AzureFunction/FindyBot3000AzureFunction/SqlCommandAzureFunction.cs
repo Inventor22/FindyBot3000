@@ -245,8 +245,8 @@ namespace FindyBot3000.AzureFunction
             string formattedTags = string.Join(",", tags.Select(tag => string.Format("'{0}'", tag.Trim().ToLowerInvariant())));
             log.LogInformation(formattedTags);
 
-            var queryString = string.Format(
-$@"SELECT i.Name, i.Quantity, i.Row, i.Col, t.TagsMatched
+            var queryString = $@"
+SELECT i.Name, i.Quantity, i.Row, i.Col, t.TagsMatched
 FROM dbo.Items i JOIN
 (
     SELECT Name, COUNT(Name) TagsMatched
@@ -254,7 +254,7 @@ FROM dbo.Items i JOIN
     WHERE Tag IN({formattedTags})
     GROUP BY Name
 ) t ON i.Name = t.Name
-ORDER BY t.TagsMatched DESC");
+ORDER BY t.TagsMatched DESC";
 
             using (SqlCommand command = new SqlCommand(queryString, connection))
             {
@@ -465,10 +465,27 @@ INSERT(Name, Tag) VALUES(Source.Name, Source.Tag);";
 
             return JsonConvert.SerializeObject(insertResponse);
         }
-
+        
         public static string RemoveItem(dynamic jsonRequestData, SqlConnection connection, ILogger log)
         {
-            return Command.RemoveItem;
+            string itemLower = ((string)jsonRequestData).ToLowerInvariant();
+            var queryString = $@"
+DELETE FROM dbo.Tags  WHERE LOWER(Tags.Name)  LIKE '{itemLower}';
+DELETE FROM dbo.Items WHERE LOWER(Items.Name) LIKE '{itemLower}';";
+
+            using (SqlCommand command = new SqlCommand(queryString, connection))
+            {
+                int itemsRemoved = command.ExecuteNonQuery();
+
+                object removeItemResponse = new
+                {
+                    Command = Command.RemoveItem,
+                    Success = itemsRemoved > 0,
+                    Quantity = itemsRemoved
+                };
+
+                return JsonConvert.SerializeObject(removeItemResponse);
+            }
         }
 
         public static string AddTags(dynamic jsonRequestData, SqlConnection connection, ILogger log)
