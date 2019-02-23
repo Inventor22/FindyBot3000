@@ -92,7 +92,13 @@ namespace FindyBot3000.AzureFunction
             }
             else
             {
-                return this.GetBoxAndUpdate(BottomItems, BottomRows, BottomCols);
+                (int row, int col) = this.GetBoxAndUpdate(BottomItems, BottomRows, BottomCols);
+
+                // 8 rows of small boxes on top, with 6 rows of big boxes below.
+                // Indexing for rows and columns start at top left.
+                row += 8;
+
+                return (row, col);
             }
         }
 

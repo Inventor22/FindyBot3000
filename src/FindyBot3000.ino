@@ -170,8 +170,11 @@ const char* FindTags = "FindTags";
 const char* InsertItem = "InsertItem";
 const char* RemoveItem = "RemoveItem";
 const char* AddTags = "AddTags";
+const char* SetQuantity = "SetQuantity";
+const char* AddQuantity = "AddQuantity";
 const char* SetBrightness = "SetBrightness";
 const char* SetDisplay = "SetDisplay";
+const char* SetDebugging = "SetDebugging";
 
 // Function callbacks
 const CommandHandler commands[] =
@@ -180,8 +183,11 @@ const CommandHandler commands[] =
   { FindTags, findTags },
   { InsertItem, insertItem },
   { RemoveItem, removeItem },
+  { SetQuantity, setQuantity},
+  { AddQuantity, addQuantity},
   { SetBrightness, setBrightness },
-  { SetDisplay, setDisplay }
+  { SetDisplay, setDisplay },
+  { SetDebugging, setDebugging }
 };
 
 void googleAssistantEventHandler(const char* event, const char* data)
@@ -200,10 +206,14 @@ void googleAssistantEventHandler(const char* event, const char* data)
   }
 }
 
-void callAzureFunction(const char* command, const char* payload)
+void callAzureFunction(const char* command, const char* payload, bool isJson = false)
 {
   char jsonData[255];
-  sprintf(jsonData, "{\"command\":\"%s\", \"data\":\"%s\"}", command, payload);
+  if (isJson) {
+    sprintf(jsonData, "{\"command\":\"%s\", \"data\":%s}", command, payload);
+  } else {
+    sprintf(jsonData, "{\"command\":\"%s\", \"data\":\"%s\"}", command, payload);
+  }
   Serial.println(jsonData);
 
   // This event is tied to a webhook created in Particle Console
@@ -225,10 +235,58 @@ void findTags(const char *data)
 
 void insertItem(const char *data)
 {
-  callAzureFunction(InsertItem, data);
+  jsonBuffer.clear();
+  JsonObject& requestJson = jsonBuffer.parseObject(data);
+
+  if (!requestJson.success()) {
+    Serial.println("InsertItem: Parsing JSON failed");
+    return;
+  }
+
+  int quantity = requestJson["Quantity"];
+
+  // Cannot have multiple Text ingredients in a Google Assistant IFTTT recipe.
+  // So, we throw a fancy pointer magic dance party and out pops the item and small/big box state
+  const char* itemAndBox = requestJson["Item"];
+  bool isSmallBox = true;
+  if (strstr(itemAndBox, "into a small box")) {
+    isSmallBox = true;
+  }
+  else if (strstr(itemAndBox, "into a big box")) {
+    isSmallBox = false;
+  }
+  else {
+    Serial.println("Box must be either 'small' or 'big'");
+    return;
+  }
+
+	const char* itemEnd = strstr(itemAndBox, " into a ");
+	int itemLength = itemEnd - itemAndBox;
+
+	char* item = new char[itemLength + 1];
+	memcpy(item, itemAndBox, itemLength);
+	item[itemLength] = '\0';
+
+	char jsonData[100];
+	sprintf(jsonData, "{\"Item\":\"%s\",\"Quantity\":%d,\"IsSmallBox\":%s}", item, quantity, (isSmallBox ? "true" : "false"));
+  delete(item);
+
+  Serial.println(jsonData);
+
+  callAzureFunction(InsertItem, jsonData, true);
 }
 
 void removeItem(const char *data)
+{
+  callAzureFunction(RemoveItem, data);
+}
+
+void setQuantity(const char *data)
+{
+  callAzureFunction(RemoveItem, data);
+}
+
+void addQuantity(const char *data)
 {
   callAzureFunction(RemoveItem, data);
 }
@@ -259,6 +317,19 @@ void setBrightness(const char *data)
   if (0 < brightness && brightness <= 100) {
     matrix.setBrightness(map(brightness, 0, 100, 0, 255));
     matrix.show();
+  }
+}
+
+//Todo: Move to Constants
+bool debuggingEnable = true;
+void setDebugging(const char *data)
+{
+  if (data == NULL) return;
+  if (strcmp(data, "on")) {
+    debuggingEnable = true;
+  }
+  else if (strcmp(data, "off")) {
+    debuggingEnable = false;
   }
 }
 
@@ -309,7 +380,7 @@ void azureFunctionEventResponseHandler(const char *event, const char *data)
 
   const char* cmd = responseJson["Command"];
 
-  Serial.print("Cmd2: ");
+  Serial.print("Command: ");
   Serial.println(cmd);
 
   for (ResponseHandler responseHandler : responseHandlers) {
@@ -354,7 +425,16 @@ void findTagsResponseHandler(JsonObject& json)
 
 void insertItemResponseHandler(JsonObject& json)
 {
+  bool insertSucceeded = json["InsertSucceeded"];
+  int row = json["Row"];
+  int col = json["Col"];
 
+  sRow = row;
+  sCol = col;
+  sColor = colors[1];
+  sSet = true;
+
+  Serial.printlnf("row: %d, col: %d, insertSucceeded: %s", row, col, insertSucceeded ? "true" : "false");
 }
 
 void removeItemResponseHandler(JsonObject& json)
