@@ -24,6 +24,7 @@
 #define OFF false
 
 StaticJsonBuffer<500> jsonBuffer;
+char jsonStringPayload[500];
 
 const PROGMEM unsigned char fire[] = {
   0B00010000,
@@ -171,10 +172,11 @@ const char* InsertItem = "InsertItem";
 const char* RemoveItem = "RemoveItem";
 const char* AddTags = "AddTags";
 const char* SetQuantity = "SetQuantity";
-const char* AddQuantity = "AddQuantity";
+const char* UpdateQuantity = "UpdateQuantity";
 const char* SetBrightness = "SetBrightness";
 const char* SetDisplay = "SetDisplay";
 const char* SetDebugging = "SetDebugging";
+const char* SetScrollTest = "SetScrollText";
 
 // Function callbacks
 const CommandHandler commands[] =
@@ -184,10 +186,11 @@ const CommandHandler commands[] =
   { InsertItem, insertItem },
   { RemoveItem, removeItem },
   { SetQuantity, setQuantity},
-  { AddQuantity, addQuantity},
+  { UpdateQuantity, updateQuantity},
   { SetBrightness, setBrightness },
   { SetDisplay, setDisplay },
-  { SetDebugging, setDebugging }
+  { SetDebugging, setDebugging },
+  { SetScrollTest, setScrollText }
 };
 
 void googleAssistantEventHandler(const char* event, const char* data)
@@ -283,12 +286,12 @@ void removeItem(const char *data)
 
 void setQuantity(const char *data)
 {
-  callAzureFunction(RemoveItem, data);
+  callAzureFunction(SetQuantity, data, true);
 }
 
-void addQuantity(const char *data)
+void updateQuantity(const char *data)
 {
-  callAzureFunction(RemoveItem, data);
+  callAzureFunction(UpdateQuantity, data, true);
 }
 
 // Turn the LED matrix power supply relay on or off
@@ -324,12 +327,22 @@ void setBrightness(const char *data)
 bool debuggingEnable = true;
 void setDebugging(const char *data)
 {
-  if (data == NULL) return;
-  if (strcmp(data, "on")) {
-    debuggingEnable = true;
+  setState(debuggingEnable, data);
+}
+
+bool scrollText = true;
+void setScrollText(const char *data)
+{
+  setState(scrollText, data);
+}
+
+void setState(bool& variable, const char *onOffText)
+{
+  if (strcmp(onOffText, "on")) {
+    variable = true;
   }
-  else if (strcmp(data, "off")) {
-    debuggingEnable = false;
+  else if (strcmp(onOffText, "off")) {
+    variable = false;
   }
 }
 

@@ -22,7 +22,7 @@ namespace FindyBot3000.AzureFunction
         public const string InsertItem = "InsertItem";
         public const string RemoveItem = "RemoveItem";
         public const string AddTags = "AddTags";
-        public const string AddQuantity = "AddQuantity";
+        public const string UpdateQuantity = "UpdateQuantity";
         public const string SetQuantity = "SetQuantity";
     }
 
@@ -191,8 +191,8 @@ namespace FindyBot3000.AzureFunction
                         response = AddTags(data, connection, log);
                         break;
 
-                    case Command.AddQuantity:
-                        response = AddQuantity(data, connection, log);
+                    case Command.UpdateQuantity:
+                        response = UpdateQuantity(data, connection, log);
                         break;
 
                     case Command.SetQuantity:
@@ -573,10 +573,16 @@ WHERE LOWER(Items.Name) LIKE '{item.ToLowerInvariant()}'";
             return FindItem(item, connection, log);
         }
 
-        public static string AddQuantity(dynamic jsonRequestData, SqlConnection connection, ILogger log)
+        public static string UpdateQuantity(dynamic jsonRequestData, SqlConnection connection, ILogger log)
         {
             string item = jsonRequestData["Item"];
             int quantity = jsonRequestData["Quantity"];
+            bool adding = jsonRequestData["Add"];
+
+            if (!adding)
+            {
+                quantity *= -1;
+            }
 
             var updateQuantityQuery = $@"
 UPDATE dbo.Items
