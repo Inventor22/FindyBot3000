@@ -17,6 +17,10 @@
 #define PIXEL_TYPE WS2812B
 #define POWER_SUPPLY_RELAY_PIN D0
 
+#define LED_ROWS 8+6
+#define LED_COLS 60
+#define LED_COLS_HALF (LED_COLS/2)
+
 // The width, in LEDs, that a single character consumes on the LED matrix
 #define LED_MATRIX_CHAR_WIDTH 6
 
@@ -142,6 +146,8 @@ void setup()
   matrix.setTextWrap(false);
   matrix.setBrightness(30);
   matrix.setTextColor(matrix.Color(255,0,255));
+
+  setDisplay(ON);
 }
 
 bool doTheThing = false;
@@ -157,7 +163,48 @@ void loop()
   //   allLeds(offset++);
   //   delay(10);
   // }
-  scrollDisplay();
+  //scrollDisplay();
+  greenRedGradientTest();
+}
+
+uint16_t getGreenRedValue(float value)
+{
+  int red = value <= 0.5 ? 255 * (value*2) : 255;
+  int green = value <= 0.5 ? 255 : (255 - 255*(value-0.5)*2);
+  return matrix.Color(red, green, 0);
+}
+
+void greenRedGradientTest()
+{
+  int row = 0;
+
+  matrix.fillScreen(0);
+
+  Serial.println(LED_COLS);
+  Serial.println(LED_COLS_HALF);
+
+  for (int i = 0; i < LED_COLS; i++)
+  {
+    int red = min(255 * (((float)i)/LED_COLS_HALF), 255);
+    int green = (i < LED_COLS_HALF) ? 255 : (255 - 255*(((float)(i - LED_COLS_HALF))/LED_COLS_HALF));
+    matrix.drawPixel(i, row, matrix.Color(red, 0, 0));
+    matrix.drawPixel(i, row+1, matrix.Color(0, green, 0));
+    matrix.drawPixel(i, row+2, matrix.Color(red, green, 0));
+  }
+
+  for (int i = 0; i < LED_COLS; i++)
+  {
+    matrix.drawPixel(i, row+3, getGreenRedValue(((float)i)/LED_COLS));
+  }
+
+  matrix.show();
+
+  delay(1000);
+}
+
+uint16_t grGrad(uint8_t green, uint8_t red, uint8_t blue)
+{
+  matrix.Color(green, red, blue);
 }
 
 struct CommandHandler
@@ -412,23 +459,27 @@ bool sSet = false;
 void findItemResponseHandler(JsonObject& json)
 {
   int count = json["Count"];
-  JsonObject& result = json["Result"][0];
+  if (count <= 0) {
+    Serial.println("Item not found");
+  } else {
+    JsonObject& result = json["Result"][0];
 
-  const char* item = result["Name"];
-  int quantity = result["Quantity"];
-  int row = result["Row"];
-  int column = result["Col"];
+    const char* item = result["Name"];
+    int quantity = result["Quantity"];
+    int row = result["Row"];
+    int column = result["Col"];
 
-  //lightBox(row, column, colors[1]);
-  sRow = row;
-  sCol = column;
-  sColor = colors[1];
-  sSet = true;
+    //lightBox(row, column, colors[1]);
+    sRow = row;
+    sCol = column;
+    sColor = colors[1];
+    sSet = true;
 
-  Serial.printlnf("item: %s, row: %d, col: %d, quantity: %d", item, row, column, quantity);
+    Serial.printlnf("item: %s, row: %d, col: %d, quantity: %d", item, row, column, quantity);
 
-  text = item;
-  textLength = text.length();
+    text = item;
+    textLength = text.length();
+  }
 }
 
 void findTagsResponseHandler(JsonObject& json)

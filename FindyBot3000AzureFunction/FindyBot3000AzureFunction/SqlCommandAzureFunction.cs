@@ -61,6 +61,16 @@ namespace FindyBot3000.AzureFunction
         }
     }
 
+    public class FindTagsResponse
+    {
+        public string Name { get; set; }
+        public int Quantity { get; set; }
+        public int Row { get; set; }
+        public int Col { get; set; }
+        public int TagsMatched { get; set; }
+        public float Confidence { get; set; }
+    }
+
     // This begs for a stateful azure function...
     public class MatrixModel
     {
@@ -296,17 +306,21 @@ ORDER BY t.TagsMatched DESC";
                 SqlDataReader reader = command.ExecuteReader();
                 try
                 {
-                    List<object> jsonObjects = new List<object>();
+                    List<FindTagsResponse> jsonObjects = new List<FindTagsResponse>();
                     while (reader.Read())
                     {
+                        int tagsMatched = (int)reader["TagsMatched"];
+                        float confidence = (float)tagsMatched / tags.Length;
+
                         jsonObjects.Add(
-                            new
+                            new FindTagsResponse
                             {
                                 Name = (string)reader["Name"],
                                 Quantity = (int)reader["Quantity"],
                                 Row = (int)reader["Row"],
-                                Column = (int)reader["Col"],
-                                TagsMatched = (int)reader["TagsMatched"]
+                                Col = (int)reader["Col"],
+                                TagsMatched = tagsMatched,
+                                Confidence = confidence
                             });
                     }
 
