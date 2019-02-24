@@ -490,9 +490,12 @@ void findTagsResponseHandler(JsonObject& json)
 
     for (int i = 0; i < count; i++)
     {
-       int row = items[i]["Coord"][0];
-       int col = items[i]["Corod"][1];
-       float confidence = items[i]["Confidence"];
+       const char* name = items[i]["Name"];
+       int row = items[i]["Info"][0];
+       int col = items[i]["Info"][1];
+       float confidence = items[i]["Info"][2];
+
+       Serial.printlnf("Name: %s, Row: %d, Col: %d, Confidence: %f", row, col, confidence);
 
        lightBox(row, col, getGreenRedValue(confidence));
     }
