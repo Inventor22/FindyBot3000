@@ -312,11 +312,11 @@ ORDER BY t.TagsMatched DESC";
                     while (reader.Read())
                     {
                         int tagsMatched = (int)reader["TagsMatched"];
-                        double confidence = (double)tagsMatched / tags.Length;
+                        float confidence = (float)tagsMatched / tags.Length;
 
                         if (compact)
                         {
-                            jsonObjects.Add(new List<object>() { (int)reader["Row"], (int)reader["Col"], (double)confidence });
+                            jsonObjects.Add(new List<object>() { (int)reader["Row"], (int)reader["Col"], (float)confidence });
                         }
                         else
                         {
@@ -325,7 +325,7 @@ ORDER BY t.TagsMatched DESC";
                                 {
                                     Name = (string)reader["Name"],
                                 //Quantity = (int)reader["Quantity"],
-                                Info = new List<object>() { (int)reader["Row"], (int)reader["Col"], (double)confidence },
+                                Info = new List<object>() { (int)reader["Row"], (int)reader["Col"], (float)confidence },
                                 //TagsMatched = tagsMatched,
                                 //Confidence = confidence
                             });
@@ -339,7 +339,7 @@ ORDER BY t.TagsMatched DESC";
                         Result = jsonObjects
                     };
 
-                    string jsonQueryResponse = JsonConvert.SerializeObject(response, new JsonSerializerSettings());
+                    string jsonQueryResponse = JsonConvert.SerializeObject(response, new FloatFormatConverter());
                     log.LogInformation(jsonQueryResponse);
 
                     return jsonQueryResponse;
@@ -668,6 +668,31 @@ INSERT(Name, Tag) VALUES(Source.Name, Source.Tag);";
                 sqlCommand.Parameters.AddWithValue("@param2", DateTime.Now);
                 sqlCommand.ExecuteNonQuery();
             }
+        }
+    }
+
+    public class FloatFormatConverter : JsonConverter
+    {
+        public override bool CanConvert(Type objectType)
+        {
+            return (objectType == typeof(float));
+        }
+
+        public override void WriteJson(JsonWriter writer, object value,
+                                       JsonSerializer serializer)
+        {
+            writer.WriteValue(string.Format("{0:N3}", value));
+        }
+
+        public override bool CanRead
+        {
+            get { return false; }
+        }
+
+        public override object ReadJson(JsonReader reader, Type objectType,
+                                     object existingValue, JsonSerializer serializer)
+        {
+            throw new NotImplementedException();
         }
     }
 }
