@@ -681,7 +681,7 @@ INSERT(Name, Tag) VALUES(Source.Name, Source.Tag);";
         public override void WriteJson(JsonWriter writer, object value,
                                        JsonSerializer serializer)
         {
-            writer.WriteValue(string.Format("{0:N3}", value));
+            writer.WriteRawValue(string.Format("{0:N2}", value));
         }
 
         public override bool CanRead
