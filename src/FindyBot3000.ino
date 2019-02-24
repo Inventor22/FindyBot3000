@@ -27,8 +27,7 @@
 #define ON true
 #define OFF false
 
-StaticJsonBuffer<500> jsonBuffer;
-char jsonStringPayload[500];
+StaticJsonBuffer<1000> jsonBuffer;
 
 const PROGMEM unsigned char fire[] = {
   0B00010000,
@@ -423,6 +422,7 @@ void azureFunctionEventResponseHandler(const char *event, const char *data)
   //strcpy(msg, data);
   Serial.println("------------------------------------");
   Serial.println(msg);
+  Serial.println(strlen(msg));
   Serial.println("------------------------------------");
 
   jsonBuffer.clear(); // Aha! This is what I needed to fix multiple FindItem calls.
@@ -491,11 +491,12 @@ void findTagsResponseHandler(JsonObject& json)
     for (int i = 0; i < count; i++)
     {
        const char* name = items[i]["Name"];
-       int row = items[i]["Info"][0];
-       int col = items[i]["Info"][1];
-       float confidence = items[i]["Info"][2];
+       JsonArray& info = items[i]["Info"];
+       int row = info[0];
+       int col = info[1];
+       float confidence = info[2];
 
-       Serial.printlnf("Name: %s, Row: %d, Col: %d, Confidence: %f", row, col, confidence);
+       Serial.printlnf("Name: %s, Row: %d, Col: %d, Confidence: %f", name, row, col, confidence);
 
        lightBox(row, col, getGreenRedValue(confidence));
     }

@@ -317,7 +317,7 @@ ORDER BY t.TagsMatched DESC";
                             {
                                 Name = (string)reader["Name"],
                                 //Quantity = (int)reader["Quantity"],
-                                Coord = new List<object>() { (int)reader["Row"], (int)reader["Col"], (float) confidence },
+                                Info = new List<object>() { (int)reader["Row"], (int)reader["Col"], (float) confidence },
                                 //TagsMatched = tagsMatched,
                                 //Confidence = confidence
                             });
