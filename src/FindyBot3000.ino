@@ -180,9 +180,6 @@ void greenRedGradientTest()
 
   matrix.fillScreen(0);
 
-  Serial.println(LED_COLS);
-  Serial.println(LED_COLS_HALF);
-
   for (int i = 0; i < LED_COLS; i++)
   {
     int red = min(255 * (((float)i)/LED_COLS_HALF), 255);
@@ -407,16 +404,14 @@ const ResponseHandler responseHandlers[] =
   { RemoveItem, removeItemResponseHandler },
 };
 
+char msg[600];
 // This function handles the webhook-response from the Azure Function
 void azureFunctionEventResponseHandler(const char *event, const char *data)
 {
   Serial.printlnf("azureFunctionEventResponseHandler\nevent: %s\ndata: %s", event, data);
   if (data == NULL) return;
 
-  Serial.println("{\"Command\":\"FindItem\",\"Count\":1,\"Result\":[{\"Name\":\"AA Battery\",\"Quantity\":2,\"Row\":0,\"Column\":0}]}");
-
   int dataLen = strlen(data);
-  char msg[dataLen];
   int j = 0;
   for (int i = 1; i < dataLen-1; i++)
   {
@@ -484,7 +479,28 @@ void findItemResponseHandler(JsonObject& json)
 
 void findTagsResponseHandler(JsonObject& json)
 {
+  const char* cmd = json["Command"];
+  int count = json["Count"];
 
+  if (count > 0)
+  {
+    JsonArray& items = json["Result"];
+
+    matrix.fillScreen(0);
+
+    for (int i = 0; i < count; i++)
+    {
+       int row = items[i]["Coord"][0];
+       int col = items[i]["Corod"][1];
+       float confidence = items[i]["Confidence"];
+
+       lightBox(row, col, getGreenRedValue(confidence));
+    }
+
+    matrix.show();
+
+    while(true) { delay(1000); }
+  }
 }
 
 void insertItemResponseHandler(JsonObject& json)

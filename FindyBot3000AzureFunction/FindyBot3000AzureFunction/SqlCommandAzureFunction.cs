@@ -306,20 +306,19 @@ ORDER BY t.TagsMatched DESC";
                 SqlDataReader reader = command.ExecuteReader();
                 try
                 {
-                    List<FindTagsResponse> jsonObjects = new List<FindTagsResponse>();
+                    List<object> jsonObjects = new List<object>();
                     while (reader.Read())
                     {
                         int tagsMatched = (int)reader["TagsMatched"];
                         float confidence = (float)tagsMatched / tags.Length;
 
                         jsonObjects.Add(
-                            new FindTagsResponse
+                            new
                             {
                                 Name = (string)reader["Name"],
-                                Quantity = (int)reader["Quantity"],
-                                Row = (int)reader["Row"],
-                                Col = (int)reader["Col"],
-                                TagsMatched = tagsMatched,
+                                //Quantity = (int)reader["Quantity"],
+                                Coord = new List<int>() { (int)reader["Row"], (int)reader["Col"] },
+                                //TagsMatched = tagsMatched,
                                 Confidence = confidence
                             });
                     }
