@@ -306,21 +306,30 @@ ORDER BY t.TagsMatched DESC";
                 SqlDataReader reader = command.ExecuteReader();
                 try
                 {
+                    bool compact = true;
+
                     List<object> jsonObjects = new List<object>();
                     while (reader.Read())
                     {
                         int tagsMatched = (int)reader["TagsMatched"];
-                        float confidence = (float)tagsMatched / tags.Length;
+                        double confidence = (double)tagsMatched / tags.Length;
 
-                        jsonObjects.Add(
-                            new
-                            {
-                                Name = (string)reader["Name"],
+                        if (compact)
+                        {
+                            jsonObjects.Add(new List<object>() { (int)reader["Row"], (int)reader["Col"], (double)confidence });
+                        }
+                        else
+                        {
+                            jsonObjects.Add(
+                                new
+                                {
+                                    Name = (string)reader["Name"],
                                 //Quantity = (int)reader["Quantity"],
-                                Info = new List<object>() { (int)reader["Row"], (int)reader["Col"], (float) confidence },
+                                Info = new List<object>() { (int)reader["Row"], (int)reader["Col"], (double)confidence },
                                 //TagsMatched = tagsMatched,
                                 //Confidence = confidence
                             });
+                        }
                     }
 
                     var response = new
@@ -330,7 +339,7 @@ ORDER BY t.TagsMatched DESC";
                         Result = jsonObjects
                     };
 
-                    string jsonQueryResponse = JsonConvert.SerializeObject(response);
+                    string jsonQueryResponse = JsonConvert.SerializeObject(response, new JsonSerializerSettings());
                     log.LogInformation(jsonQueryResponse);
 
                     return jsonQueryResponse;

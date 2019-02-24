@@ -168,8 +168,8 @@ void loop()
 
 uint16_t getGreenRedValue(float value)
 {
-  int red = value <= 0.5 ? 255 * (value*2) : 255;
-  int green = value <= 0.5 ? 255 : (255 - 255*(value-0.5)*2);
+  int red = value <= 0.5 ? 255 : (255 - 255*(value-0.5)*2);
+  int green = value <= 0.5 ? 255 * (value*2) : 255;
   return matrix.Color(red, green, 0);
 }
 
@@ -490,13 +490,14 @@ void findTagsResponseHandler(JsonObject& json)
 
     for (int i = 0; i < count; i++)
     {
-       const char* name = items[i]["Name"];
-       JsonArray& info = items[i]["Info"];
+       //const char* name = items[i]["Name"];
+       JsonArray& info = items[i];
        int row = info[0];
        int col = info[1];
        float confidence = info[2];
 
-       Serial.printlnf("Name: %s, Row: %d, Col: %d, Confidence: %f", name, row, col, confidence);
+       //Serial.printlnf("Name: %s, Row: %d, Col: %d, Confidence: %f", name, row, col, confidence);
+       Serial.printlnf("Row: %d, Col: %d, Confidence: %f", row, col, confidence);
 
        lightBox(row, col, getGreenRedValue(confidence));
     }
