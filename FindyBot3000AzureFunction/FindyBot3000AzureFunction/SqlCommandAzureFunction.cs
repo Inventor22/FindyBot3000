@@ -306,28 +306,22 @@ ORDER BY t.TagsMatched DESC";
                 SqlDataReader reader = command.ExecuteReader();
                 try
                 {
-                    bool compact = true;
+                    bool includeName = false;
 
                     List<object> jsonObjects = new List<object>();
                     while (reader.Read())
                     {
-                        int tagsMatched = (int)reader["TagsMatched"];
-                        float confidence = (float)tagsMatched / tags.Length;
-
-                        if (compact)
+                        if (!includeName)
                         {
-                            jsonObjects.Add(new List<object>() { (int)reader["Row"], (int)reader["Col"], (float)confidence });
+                            jsonObjects.Add(new int[] { (int)reader["Row"], (int)reader["Col"], (int)reader["TagsMatched"] });
                         }
                         else
                         {
                             jsonObjects.Add(
-                                new
-                                {
-                                    Name = (string)reader["Name"],
-                                //Quantity = (int)reader["Quantity"],
-                                Info = new List<object>() { (int)reader["Row"], (int)reader["Col"], (float)confidence },
-                                //TagsMatched = tagsMatched,
-                                //Confidence = confidence
+                            new
+                            {
+                                Name = (string)reader["Name"],
+                                Info = new int[] { (int)reader["Row"], (int)reader["Col"], (int)reader["TagsMatched"] }
                             });
                         }
                     }
@@ -336,6 +330,7 @@ ORDER BY t.TagsMatched DESC";
                     {
                         Command = Command.FindTags,
                         Count = jsonObjects.Count,
+                        Tags = tags.Length,
                         Result = jsonObjects
                     };
 

@@ -450,6 +450,7 @@ void findTagsResponseHandler(JsonObject& json)
 {
   const char* cmd = json["Command"];
   int count = json["Count"];
+  int numTags = json["Tags"];
 
   if (count > 0)
   {
@@ -463,7 +464,7 @@ void findTagsResponseHandler(JsonObject& json)
        JsonArray& info = items[i];
        int row = info[0];
        int col = info[1];
-       float confidence = info[2];
+       float confidence = ((float)info[2])/numTags;
 
        //Serial.printlnf("Name: %s, Row: %d, Col: %d, Confidence: %f", name, row, col, confidence);
        Serial.printlnf("Row: %d, Col: %d, Confidence: %f", row, col, confidence);
