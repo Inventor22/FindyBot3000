@@ -486,7 +486,7 @@ void findTagsResponseHandler(JsonObject& json)
 
 void insertItemResponseHandler(JsonObject& json)
 {
-  bool insertSucceeded = json["InsertSucceeded"];
+  bool success = json["Success"];
   int row = json["Row"];
   int col = json["Col"];
 
@@ -495,7 +495,7 @@ void insertItemResponseHandler(JsonObject& json)
   sColor = colors[1];
   sSet = true;
 
-  Serial.printlnf("row: %d, col: %d, insertSucceeded: %s", row, col, insertSucceeded ? "true" : "false");
+  Serial.printlnf("row: %d, col: %d, insertSucceeded: %s", row, col, success ? "true" : "false");
 }
 
 void removeItemResponseHandler(JsonObject& json)

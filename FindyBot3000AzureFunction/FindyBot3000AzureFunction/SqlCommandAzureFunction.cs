@@ -24,6 +24,7 @@ namespace FindyBot3000.AzureFunction
         public const string AddTags = "AddTags";
         public const string UpdateQuantity = "UpdateQuantity";
         public const string SetQuantity = "SetQuantity";
+        public const string ShowAllBoxes = "ShowAllBoxes";
     }
 
     // Sql Table column names
@@ -207,6 +208,10 @@ namespace FindyBot3000.AzureFunction
 
                     case Command.SetQuantity:
                         response = SetQuantity(data, connection, log);
+                        break;
+
+                    case Command.ShowAllBoxes:
+                        response = ShowAllBoxes(data, connection, log);
                         break;
 
                     default:
@@ -418,11 +423,11 @@ ORDER BY t.TagsMatched DESC";
                     // Always call Close when done reading.
                     reader.Close();
                 }
-            }            
+            }
 
             // Item doesn't exist; insert.
             // Find existing boxes
-            var sqlAllConsumedBoxes = string.Format("SELECT ROW, COL FROM dbo.Items");
+            var sqlAllConsumedBoxes = string.Format("SELECT DISTINCT ROW,COL FROM dbo.Items");
             MatrixModel matrix = new MatrixModel();
 
             using (SqlCommand command = new SqlCommand(sqlAllConsumedBoxes, connection))
@@ -453,7 +458,7 @@ ORDER BY t.TagsMatched DESC";
                     new
                     {
                         Command = Command.InsertItem,
-                        InsertSucceeded = false,
+                        Success = false,
                         Message = $"No {(useSmallBox ? "Small" : "Large")} boxes left!"
                     });
             }
@@ -483,7 +488,7 @@ VALUES (@param1, @param2, @param3, @param4, @param5, @param6, @param7)");
                     new
                     {
                         Command = Command.InsertItem,
-                        InsertSucceeded = false,
+                        Success = false,
                         Message = "Insert failed"
                     });
             }
@@ -494,7 +499,7 @@ VALUES (@param1, @param2, @param3, @param4, @param5, @param6, @param7)");
             object insertResponse = new
             {
                 Command = Command.InsertItem,
-                InsertSucceeded = insertSucceeded && tagsAdded > 0,
+                Success = insertSucceeded && tagsAdded > 0,
                 Row = row,
                 Col = col
             };
@@ -568,7 +573,7 @@ ELSE CAST(0 AS BIT) END";
                     {
                         var addTagsResponse = new
                         {
-                            Command = Command.FindItem,
+                            Command = Command.AddTags,
                             Success = false,
                             Message = "Item does not exist, cannot add tags"
                         };
@@ -642,6 +647,46 @@ WHERE LOWER(Items.Name) LIKE '{item.ToLowerInvariant()}'";
 
             // Return the item, so the display lights the box
             return FindItem(item, connection, log);
+        }
+
+        public static string ShowAllBoxes(dynamic jsonRequestData, SqlConnection connection, ILogger log)
+        {
+            string allBoxesQuery = $@"SELECT DISTINCT Row,Col FROM dbo.Items";
+
+            using (SqlCommand command = new SqlCommand(allBoxesQuery, connection))
+            {
+                SqlDataReader reader = command.ExecuteReader();
+
+                try
+                {
+                    List<object> coords = new List<object>();
+
+                    if (reader.HasRows)
+                    {
+                        while (reader.Read())
+                        {
+                            coords.Add(new[] { (int)reader[Dbo.Items.Row], (int)reader[Dbo.Items.Col] });
+                        }
+                    }
+
+                    dynamic jsonResponse = new
+                    {
+                        Command = Command.ShowAllBoxes,
+                        Count = coords.Count,
+                        Coords = coords
+                    };
+
+                    return JsonConvert.SerializeObject(jsonResponse);
+                }
+                catch (Exception)
+                {
+                    return JsonConvert.SerializeObject(new { Command = Command.ShowAllBoxes, Success = false });
+                }
+                finally
+                {
+                    reader.Close();
+                }
+            }
         }
 
         /* Build a SQL insert statement supporting multiple insert values, without duplicating any entries:
