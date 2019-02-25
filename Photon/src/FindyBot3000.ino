@@ -246,7 +246,7 @@ void googleAssistantEventHandler(const char* event, const char* data)
 
   // loop through each command until a match is found; then call the associated handler
   for (CommandHandler cmd : commands) {
-    if (strcmp(event, cmd.command) == 0) {
+    if (strstr(event, cmd.command)) {
       cmd.handle(data);
       break;
     }
@@ -419,6 +419,7 @@ void azureFunctionEventResponseHandler(const char *event, const char *data)
   for (ResponseHandler responseHandler : responseHandlers) {
     if (strcmp(cmd, responseHandler.command) == 0) {
       responseHandler.handle(responseJson);
+      break;
     }
   }
 
