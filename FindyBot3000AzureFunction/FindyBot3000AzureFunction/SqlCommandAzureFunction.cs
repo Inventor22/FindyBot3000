@@ -528,7 +528,27 @@ DELETE FROM dbo.Items WHERE LOWER(Items.Name) LIKE '{itemLower}';";
         // 2. Add tags
         public static string AddTags(dynamic jsonRequestData, SqlConnection connection, ILogger log)
         {
-            string item = jsonRequestData["Item"];
+            string data = jsonRequestData;
+            string item = string.Empty;
+            IEnumerable<string> tags = null;
+
+            if (data.Contains(" to "))
+            {
+                string[] tagsAndItem = data.Split(" to ", StringSplitOptions.RemoveEmptyEntries);
+                item = tagsAndItem[1];
+                tags = tagsAndItem[0].ToLowerInvariant().Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(a => a.Trim());
+            }
+            else if (data.Contains(" add tags "))
+            {
+                string[] itemAndTags = data.Split(" add tags ", StringSplitOptions.RemoveEmptyEntries);
+                item = itemAndTags[0];
+                tags = itemAndTags[1].ToLowerInvariant().Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(a => a.Trim());
+            }
+            else
+            {
+                return JsonConvert.SerializeObject(new { Command = Command.AddTags, Success = false });
+            }
+            
             string itemLower = item.ToLowerInvariant();
             string itemExistsQuery = $@"
 SELECT CASE WHEN EXISTS (
@@ -565,10 +585,7 @@ ELSE CAST(0 AS BIT) END";
                     reader.Close();
                 }
             }
-
-            string tagString = jsonRequestData["Tags"];
-            IEnumerable<string> tags = tagString.ToLowerInvariant().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Select(a => a.Trim());
-
+            
             int tagsAdded = InsertTags(connection, item, tags);
 
             object addTagsResponse2 = new

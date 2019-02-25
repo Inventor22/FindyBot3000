@@ -229,6 +229,7 @@ const CommandHandler commands[] =
   { FindTags, findTags },
   { InsertItem, insertItem },
   { RemoveItem, removeItem },
+  { AddTags, addTags },
   { SetQuantity, setQuantity},
   { UpdateQuantity, updateQuantity},
   { SetBrightness, setBrightness },
@@ -289,6 +290,11 @@ void insertItem(const char *data)
 void removeItem(const char *data)
 {
   callAzureFunction(RemoveItem, data);
+}
+
+void addTags(const char *data)
+{
+  callAzureFunction(AddTags, data);
 }
 
 void setQuantity(const char *data)
