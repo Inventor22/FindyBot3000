@@ -682,19 +682,6 @@ INSERT(Name, Tag) VALUES(Source.Name, Source.Tag);";
         }
 
         // InsertItem helper methods
-
-        public class BoxType
-        {
-            public string Type { get; set; }
-            public bool IsSmallBox { get; set; }
-
-            public BoxType(string type, bool isSmallBox)
-            {
-                this.Type = type;
-                this.IsSmallBox = isSmallBox;
-            }
-        }
-
         public static bool TryGetBoxInfo(string info, out int startIndex, out string searchTerm, out bool useSmallBox)
         {
             string[] boxPrefix = { "into a", "in a" };
@@ -789,6 +776,18 @@ INSERT(Name, Tag) VALUES(Source.Name, Source.Tag);";
                 return item;
             }
             return info;
+        }
+    }
+
+    public class BoxType
+    {
+        public string Type { get; set; }
+        public bool IsSmallBox { get; set; }
+
+        public BoxType(string type, bool isSmallBox)
+        {
+            this.Type = type;
+            this.IsSmallBox = isSmallBox;
         }
     }
 
