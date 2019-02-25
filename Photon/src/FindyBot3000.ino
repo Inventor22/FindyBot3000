@@ -220,6 +220,7 @@ const char* SetBrightness = "SetBrightness";
 const char* SetDisplay = "SetDisplay";
 const char* SetDebugging = "SetDebugging";
 const char* SetScrollTest = "SetScrollText";
+const char* ShowAllBoxes = "ShowAllBoxes";
 
 // Function callbacks
 const CommandHandler commands[] =
@@ -233,7 +234,8 @@ const CommandHandler commands[] =
   { SetBrightness, setBrightness },
   { SetDisplay, setDisplay },
   { SetDebugging, setDebugging },
-  { SetScrollTest, setScrollText }
+  { SetScrollTest, setScrollText },
+  { ShowAllBoxes, showAllBoxes }
 };
 
 void googleAssistantEventHandler(const char* event, const char* data)
@@ -297,6 +299,11 @@ void setQuantity(const char *data)
 void updateQuantity(const char *data)
 {
   callAzureFunction(UpdateQuantity, data, true);
+}
+
+void showAllBoxes(const char *data)
+{
+  callAzureFunction(ShowAllBoxes, data);
 }
 
 // Turn the LED matrix power supply relay on or off

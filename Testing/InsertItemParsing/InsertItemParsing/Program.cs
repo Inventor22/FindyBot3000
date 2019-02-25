@@ -12,12 +12,14 @@ namespace InsertItemParsing
         static void Main(string[] args)
         {
             string[] jsonTests = {
+                "{\"Info\":\"set of cable into a small box with tags red black cable computer setup\",\"Quantity\":1}",
                 "{\"Info\":\"Yellow LED into a small box with tags yellow led diode light\",\"Quantity\":2}",
                 "{\"Info\":\"Yellow LED with tags yellow led diode light into a small box\",\"Quantity\":2}",
                 "{\"Info\":\"Yellow LED with tags yellow led diode light\",\"Quantity\":2}",
                 "{\"Info\":\"Yellow LED into a small box\",\"Quantity\":2}",
                 "{\"Info\":\"Yellow LED into a large container with tags yellow led emitting diode light\",\"Quantity\":2}",
                 "{\"Info\":\"Yellow LED with tags yellow led diode emitting light into a big box\",\"Quantity\":2}",
+                "{\"Info\":\"Yellow LED\",\"Quantity\":55}",
             };
 
             foreach (string json in jsonTests)

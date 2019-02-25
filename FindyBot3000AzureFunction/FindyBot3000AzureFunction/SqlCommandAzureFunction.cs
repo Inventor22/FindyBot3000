@@ -90,7 +90,7 @@ namespace FindyBot3000.AzureFunction
             }
             else if (row < 14)
             {
-                this.BottomItems[row, col] = true;
+                this.BottomItems[row-8, col] = true;
             }
         }
 
