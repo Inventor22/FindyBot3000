@@ -113,9 +113,16 @@ int scrollCount = 0;
 String text = "H I ";
 int textLength = 0;
 
-bool displayOn = false;
+// Controlled via Google Assistant
+bool enableDisplay = false;
+bool enableTextScrolling = false;
+bool enableDebugging = true;
 
-// IFTTT Function prototypes
+// Controlled locally
+bool enableLightAllBoxes = false;
+bool enableRainbowLeds = false;
+
+// Google Assistant > IFTTT > Particle Photon subscribe event handler function prototype
 void googleAssistantEventHandler(const char *event, const char *data);
 
 // Webhook response handler function prototypes
@@ -133,10 +140,9 @@ void setup()
   // Handle Azure Function web hook response
   Particle.subscribe("hook-response/callAzureFunctionEvent", azureFunctionEventResponseHandler, MY_DEVICES);
 
-  // Start FindyBot3000 with the distplay off
+  // Start FindyBot3000 with the display off
   pinMode(POWER_SUPPLY_RELAY_PIN, OUTPUT);
-  digitalWrite(POWER_SUPPLY_RELAY_PIN, LOW);
-
+  digitalWrite(POWER_SUPPLY_RELAY_PIN, OFF);
   delay(1000);
 
   textLength = text.length();
@@ -147,25 +153,19 @@ void setup()
   matrix.setTextColor(matrix.Color(255,0,255));
 
   setDisplay(ON);
-}
 
-bool doTheThing = false;
-
-int offset = 0;
-void loop()
-{
-  if (!displayOn) return;
-  //
-  // if (doTheThing)
-  // {
-  //   //lightBoxes();
-  //   allLeds(offset++);
-  //   delay(10);
-  // }
-  //scrollDisplay();
   greenRedGradientTest();
 }
 
+void loop()
+{
+  if (!enableDisplay)      return;
+  if (enableLightAllBoxes) lightBoxes();
+  if (enableTextScrolling) scrollDisplay();
+  if (enableRainbowLeds)   rainbowLeds();
+}
+
+// 0.0 = Red, 0.5 = Yellow, 1.0 = Green
 uint16_t getGreenRedValue(float value)
 {
   int red = value <= 0.5 ? 255 : (255 - 255*(value-0.5)*2);
@@ -198,17 +198,13 @@ void greenRedGradientTest()
   delay(1000);
 }
 
-uint16_t grGrad(uint8_t green, uint8_t red, uint8_t blue)
-{
-  matrix.Color(green, red, blue);
-}
-
 struct CommandHandler
 {
   const char* command;
   void (*handle) (const char* data);
 };
 
+// Requires AzureFunction
 const char* FindItem = "FindItem";
 const char* FindTags = "FindTags";
 const char* InsertItem = "InsertItem";
@@ -216,11 +212,14 @@ const char* RemoveItem = "RemoveItem";
 const char* AddTags = "AddTags";
 const char* SetQuantity = "SetQuantity";
 const char* UpdateQuantity = "UpdateQuantity";
+const char* ShowAllBoxes = "ShowAllBoxes";
+
+// Processed on Particle Photon
 const char* SetBrightness = "SetBrightness";
 const char* SetDisplay = "SetDisplay";
 const char* SetDebugging = "SetDebugging";
-const char* SetScrollTest = "SetScrollText";
-const char* ShowAllBoxes = "ShowAllBoxes";
+const char* SetScrollText = "SetScrollText";
+
 
 // Function callbacks
 const CommandHandler commands[] =
@@ -235,7 +234,7 @@ const CommandHandler commands[] =
   { SetBrightness, setBrightness },
   { SetDisplay, setDisplay },
   { SetDebugging, setDebugging },
-  { SetScrollTest, setScrollText },
+  { SetScrollText, setScrollText },
   { ShowAllBoxes, showAllBoxes }
 };
 
@@ -245,10 +244,9 @@ void googleAssistantEventHandler(const char* event, const char* data)
 
   Serial.printlnf("googleAssistantEventHandler event: %s, data: %s", event, data);
 
-  // loop through each command until a match is found; then call the associated
-  // handler
+  // loop through each command until a match is found; then call the associated handler
   for (CommandHandler cmd : commands) {
-    if (strstr(event, cmd.command)) {
+    if (strcmp(event, cmd.command) == 0) {
       cmd.handle(data);
       break;
     }
@@ -271,7 +269,8 @@ void callAzureFunction(const char* command, const char* payload, bool isJson = f
   Particle.publish("callAzureFunctionEvent", jsonData, PRIVATE);
 }
 
-// Todo - Update to fetch from DB
+/* ============= GOOGLE ASSISTANT EVENT HANDLERS ============= */
+
 void findItem(const char *data)
 {
   callAzureFunction(FindItem, data);
@@ -341,28 +340,27 @@ void setBrightness(const char *data)
   }
 }
 
-//Todo: Move to Constants
-bool debuggingEnable = true;
 void setDebugging(const char *data)
 {
-  setState(debuggingEnable, data);
+  setStateFromText(enableDebugging, data);
 }
 
-bool scrollText = true;
 void setScrollText(const char *data)
 {
-  setState(scrollText, data);
+  setStateFromText(enableTextScrolling, data);
 }
 
-void setState(bool& variable, const char *onOffText)
+void setStateFromText(bool& variable, const char *onOffText)
 {
-  if (strcmp(onOffText, "on")) {
+  if (strcmp(onOffText, "on") == 0) {
     variable = true;
   }
-  else if (strcmp(onOffText, "off")) {
+  else if (strcmp(onOffText, "off") == 0) {
     variable = false;
   }
 }
+
+/* ============= WEBHOOK RESPONSE HANDLERS ============= */
 
 struct ResponseHandler
 {
@@ -376,6 +374,10 @@ const ResponseHandler responseHandlers[] =
   { FindTags, findTagsResponseHandler },
   { InsertItem, insertItemResponseHandler },
   { RemoveItem, removeItemResponseHandler },
+  { AddTags, addTagsResponseHandler },
+  { SetQuantity, setQuantityResponseHandler },
+  { UpdateQuantity, updateQuantityResponseHandler },
+  { ShowAllBoxes, showAllBoxesResponseHandler },
 };
 
 char msg[600];
@@ -385,6 +387,7 @@ void azureFunctionEventResponseHandler(const char *event, const char *data)
   Serial.printlnf("azureFunctionEventResponseHandler\nevent: %s\ndata: %s", event, data);
   if (data == NULL) return;
 
+  // remove all backslashes ('\') added by particle webhook-response
   int dataLen = strlen(data);
   int j = 0;
   for (int i = 1; i < dataLen-1; i++)
@@ -479,8 +482,6 @@ void findTagsResponseHandler(JsonObject& json)
     }
 
     matrix.show();
-
-    while(true) { delay(1000); }
   }
 }
 
@@ -500,9 +501,31 @@ void insertItemResponseHandler(JsonObject& json)
 
 void removeItemResponseHandler(JsonObject& json)
 {
-
+  Serial.println("removeItemResponseHandler");
 }
 
+void addTagsResponseHandler(JsonObject& json)
+{
+  Serial.println("addTagsResponseHandler");
+}
+
+void setQuantityResponseHandler(JsonObject& json)
+{
+  Serial.println("setQuantityResponseHandler");
+}
+
+void updateQuantityResponseHandler(JsonObject& json)
+{
+  Serial.println("updateQuantityResponseHandler");
+}
+
+void showAllBoxesResponseHandler(JsonObject& json)
+{
+  Serial.println("showAllBoxesResponseHandler");
+}
+
+
+/* =============== HELPER FUNCTIONS =============== */
 
 void lightBox(int row, int col, uint16_t color)
 {
@@ -531,10 +554,10 @@ void lightBox(int row, int col, uint16_t color)
   //matrix.show();
 }
 
-int smileOffset = 16+8;
-
 void scrollDisplay()
 {
+  static const int smileOffset = 16+8;
+
   matrix.fillScreen(0);
   matrix.setCursor(scrollPosition, 0);
   matrix.print(text);
@@ -562,50 +585,34 @@ void scrollDisplay()
 
 void setDisplay(bool state)
 {
-  if (displayOn == state) return;
+  if (enableDisplay == state) return;
 
   if (state) {
-    digitalWrite(POWER_SUPPLY_RELAY_PIN, HIGH);
+    digitalWrite(POWER_SUPPLY_RELAY_PIN, ON);
     // Give the power supply a moment to warm up if it was turned off
     // Datasheet suggests 20-50ms warm up time to support full load
-    delay(2000);
+    delay(1000);
   } else {
-    digitalWrite(POWER_SUPPLY_RELAY_PIN, LOW);
+    digitalWrite(POWER_SUPPLY_RELAY_PIN, OFF);
   }
 
-  displayOn = state;
+  enableDisplay = state;
 }
 
-/********** Testing functions **********/
-uint32_t Wheel(uint8_t WheelPos)
-{
-  WheelPos = 255 - WheelPos;
-  if(WheelPos < 85) {
-    return matrix.Color(255 - WheelPos * 3, 0, WheelPos * 3);
-  }
-  if(WheelPos < 170) {
-    WheelPos -= 85;
-    return matrix.Color(0, WheelPos * 3, 255 - WheelPos * 3);
-  }
-  WheelPos -= 170;
-  return matrix.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
-}
+/********** TESTING FUNCTIONS **********/
 
 // Light all LEDs in the matrix with a rainbow effect
-void allLeds(int offset)
+void rainbowLeds()
 {
+  static int offset = 0;
   for (int row = 0; row < 14; row++) {
     for (int col = 0; col < 60; col++) {
       matrix.drawPixel(col, row, Wheel((row*col+offset)%255));
     }
   }
-
+  offset++;
   matrix.show();
-
-  // Loop indefinitely
-  // while(true) {
-  //   delay(1000);
-  // }
+  delay(1000);
 }
 
 // Light each led-mapped box on the organizer one by one
@@ -623,10 +630,24 @@ void lightBoxes()
       delay(50);
     }
   }
-  //lightBox(r(0, 13), r(0, 16), colors[r(0, colorCount)]);
   while(true) {
     delay(1000);
   }
+}
+
+// Borrowed from: https://learn.adafruit.com/multi-tasking-the-arduino-part-3/utility-functions
+uint32_t Wheel(uint8_t WheelPos)
+{
+  WheelPos = 255 - WheelPos;
+  if(WheelPos < 85) {
+    return matrix.Color(255 - WheelPos * 3, 0, WheelPos * 3);
+  }
+  if(WheelPos < 170) {
+    WheelPos -= 85;
+    return matrix.Color(0, WheelPos * 3, 255 - WheelPos * 3);
+  }
+  WheelPos -= 170;
+  return matrix.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
 }
 
 // Generate a random number between minRand and maxRand
