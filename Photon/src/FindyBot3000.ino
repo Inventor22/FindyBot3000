@@ -281,45 +281,7 @@ void findTags(const char *data)
 
 void insertItem(const char *data)
 {
-  jsonBuffer.clear();
-  JsonObject& requestJson = jsonBuffer.parseObject(data);
-
-  if (!requestJson.success()) {
-    Serial.println("InsertItem: Parsing JSON failed");
-    return;
-  }
-
-  int quantity = requestJson["Quantity"];
-
-  // Cannot have multiple Text ingredients in a Google Assistant IFTTT recipe.
-  // So, we throw a fancy pointer magic dance party and out pops the item and small/big box state
-  const char* itemAndBox = requestJson["Item"];
-  bool isSmallBox = true;
-  if (strstr(itemAndBox, "into a small box")) {
-    isSmallBox = true;
-  }
-  else if (strstr(itemAndBox, "into a big box")) {
-    isSmallBox = false;
-  }
-  else {
-    Serial.println("Box must be either 'small' or 'big'");
-    return;
-  }
-
-	const char* itemEnd = strstr(itemAndBox, " into a ");
-	int itemLength = itemEnd - itemAndBox;
-
-	char* item = new char[itemLength + 1];
-	memcpy(item, itemAndBox, itemLength);
-	item[itemLength] = '\0';
-
-	char jsonData[100];
-	sprintf(jsonData, "{\"Item\":\"%s\",\"Quantity\":%d,\"IsSmallBox\":%s}", item, quantity, (isSmallBox ? "true" : "false"));
-  delete(item);
-
-  Serial.println(jsonData);
-
-  callAzureFunction(InsertItem, jsonData, true);
+  callAzureFunction(InsertItem, data, true);
 }
 
 void removeItem(const char *data)

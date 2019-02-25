@@ -357,15 +357,26 @@ ORDER BY t.TagsMatched DESC";
         // 3. Insert an entry into the Items table with the row/column info
         // 4. If successful, insert entries into the Tags table with the words from the item name as tags
         // 4. Return a response with data indicating the insert was successful, and the row/column info
+        //
+        // Format of info can be:
+        // a. "<item name>"
+        // b. "<item name> into a <small box|big box> with tags <tag0 tag1 tag2 ...>"
+        // c. "<item name> with tags <tag0 tag1 tag2 ...> into a <small box|big box>"
         public static string InsertItem(dynamic jsonRequestData, SqlConnection connection, ILogger log)
         {
-            string item = jsonRequestData["Item"];
+            string info = jsonRequestData["Info"];
             int quantity = jsonRequestData["Quantity"];
-            bool isSmallBox = jsonRequestData["IsSmallBox"];
+
+            string infoLower = info.ToLowerInvariant();
+
+            bool hasBox = TryGetBoxInfo(infoLower, out int boxIndex, out string boxSearch, out bool useSmallBox);
+            bool hasTags = TryGetTagsInfo(infoLower, boxIndex, out int tagsIndex, out HashSet<string> tags);
+            string item = GetItemInfo(info, hasBox, hasTags, boxIndex, tagsIndex);
 
             string itemLower = item.ToLowerInvariant();
-            IEnumerable<string> tags = itemLower.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Select(a => a.Trim());
-            
+
+            tags.UnionWith(itemLower.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Select(a => a.Trim()));
+
             var checkIfExistsQuery = $@"SELECT Name,Quantity,Row,Col FROM dbo.Items WHERE LOWER(Items.Name) LIKE '{itemLower}'";
 
             using (SqlCommand command = new SqlCommand(checkIfExistsQuery, connection))
@@ -439,7 +450,7 @@ ORDER BY t.TagsMatched DESC";
                 }
             }
 
-            var (row, col) = matrix.GetNextAvailableBox(isSmallBox);
+            var (row, col) = matrix.GetNextAvailableBox(useSmallBox);
 
             if (row == -1 && col == -1)
             {
@@ -448,7 +459,7 @@ ORDER BY t.TagsMatched DESC";
                     {
                         Command = Command.InsertItem,
                         InsertSucceeded = false,
-                        Message = $"No {(isSmallBox ? "Small" : "Large")} boxes left!"
+                        Message = $"No {(useSmallBox ? "Small" : "Large")} boxes left!"
                     });
             }
 
@@ -465,7 +476,7 @@ VALUES (@param1, @param2, @param3, @param4, @param5, @param6, @param7)");
                 sqlCommand.Parameters.AddWithValue("@param2", quantity);
                 sqlCommand.Parameters.AddWithValue("@param3", row);
                 sqlCommand.Parameters.AddWithValue("@param4", col);
-                sqlCommand.Parameters.AddWithValue("@param5", isSmallBox);
+                sqlCommand.Parameters.AddWithValue("@param5", useSmallBox);
                 sqlCommand.Parameters.AddWithValue("@param6", DateTime.UtcNow);
                 sqlCommand.Parameters.AddWithValue("@param7", DateTime.UtcNow);
                 insertSucceeded = sqlCommand.ExecuteNonQuery() > 0;
@@ -668,6 +679,116 @@ INSERT(Name, Tag) VALUES(Source.Name, Source.Tag);";
                 sqlCommand.Parameters.AddWithValue("@param2", DateTime.Now);
                 sqlCommand.ExecuteNonQuery();
             }
+        }
+
+        // InsertItem helper methods
+
+        public class BoxType
+        {
+            public string Type { get; set; }
+            public bool IsSmallBox { get; set; }
+
+            public BoxType(string type, bool isSmallBox)
+            {
+                this.Type = type;
+                this.IsSmallBox = isSmallBox;
+            }
+        }
+
+        public static bool TryGetBoxInfo(string info, out int startIndex, out string searchTerm, out bool useSmallBox)
+        {
+            string[] boxPrefix = { "into a", "in a" };
+            BoxType[] boxTypes =
+            {
+                new BoxType("big", false), new BoxType("large", false),
+                new BoxType("small", true), new BoxType("little", true)
+            };
+            string[] boxNames = { "box", "container" };
+            foreach (string prefix in boxPrefix)
+            {
+                foreach (BoxType boxType in boxTypes)
+                {
+                    foreach (string name in boxNames)
+                    {
+                        string searchString = $" {prefix} {boxType.Type} {name}";
+                        int index = info.IndexOf(searchString);
+                        if (index != -1)
+                        {
+                            useSmallBox = boxType.IsSmallBox;
+                            searchTerm = searchString;
+                            startIndex = index;
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            searchTerm = string.Empty;
+            useSmallBox = true;
+            startIndex = -1;
+            return false;
+        }
+
+        public static bool TryGetTagsInfo(string info, int boxIndex, out int startIndex, out HashSet<string> tags)
+        {
+            string tagsTag = " with tags ";
+            startIndex = info.IndexOf(tagsTag);
+
+            if (startIndex == -1)
+            {
+                tags = new HashSet<string>();
+                return false;
+            }
+
+            string tagsString = string.Empty;
+            int tagsStartIndex = startIndex + tagsTag.Length;
+
+            if (startIndex < boxIndex)
+            {
+                tagsString = info.Substring(tagsStartIndex, boxIndex - tagsStartIndex);
+            }
+            else
+            {
+                tagsString = info.Substring(tagsStartIndex);
+            }
+
+            if (!string.IsNullOrEmpty(tagsString))
+            {
+                tagsString = tagsString.ToLowerInvariant();
+
+                tags = new HashSet<string>(
+                    tagsString
+                    .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(a => a.Trim()));
+
+                return true;
+            }
+            else
+            {
+                tags = new HashSet<string>();
+                return false;
+            }
+        }
+
+        public static string GetItemInfo(string info, bool hasBox, bool hasTags, int boxIndex, int tagsIndex)
+        {
+            string item = string.Empty;
+            if (hasBox && hasTags)
+            {
+                item = info.Substring(0, tagsIndex < boxIndex ? tagsIndex : boxIndex);
+                return item;
+            }
+            else if (hasBox)
+            {
+                item = info.Substring(0, boxIndex);
+                return item;
+            }
+            else if (hasTags)
+            {
+                item = info.Substring(0, tagsIndex);
+                return item;
+            }
+            return info;
         }
     }
 
