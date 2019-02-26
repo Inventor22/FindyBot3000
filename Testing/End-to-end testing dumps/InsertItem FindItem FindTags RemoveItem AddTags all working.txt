@@ -1,0 +1,806 @@
+googleAssistantEventHandler event: Google_FindItem, data: yellow LED
+{"command":"FindItem", "data":"yellow LED"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"FindItem\",\"Count\":1,\"Result\":[{\"Name\":\"Yellow LED\",\"Quantity\":43,\"Row\":0,\"Col\":4}]}"
+------------------------------------
+{"Command":"FindItem","Count":1,"Result":[{"Name":"Yellow LED","Quantity":43,"Row":0,"Col":4}]}
+95
+------------------------------------
+Command: FindItem
+item: Yellow LED, row: 0, col: 4, quantity: 43
+googleAssistantEventHandler event: Google_FindTags, data: yellow LED diode
+{"command":"FindTags", "data":"yellow LED diode"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"FindTags\",\"Count\":5,\"Tags\":3,\"Result\":[[0,4,3],[3,10,1],[0,2,1],[0,6,1],[0,5,1]]}"
+------------------------------------
+{"Command":"FindTags","Count":5,"Tags":3,"Result":[[0,4,3],[3,10,1],[0,2,1],[0,6,1],[0,5,1]]}
+93
+------------------------------------
+Command: FindTags
+Row: 0, Col: 4, Confidence: 1.000000
+Row: 3, Col: 10, Confidence: 0.333333
+Row: 0, Col: 2, Confidence: 0.333333
+Row: 0, Col: 6, Confidence: 0.333333
+Row: 0, Col: 5, Confidence: 0.333333
+googleAssistantEventHandler event: Google_FindTags, data: yellow LED diode pocket knife
+{"command":"FindTags", "data":"yellow LED diode pocket knife"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"FindTags\",\"Count\":6,\"Tags\":5,\"Result\":[[0,4,3],[0,7,2],[0,5,1],[3,10,1],[0,2,1],[0,6,1]]}"
+------------------------------------
+{"Command":"FindTags","Count":6,"Tags":5,"Result":[[0,4,3],[0,7,2],[0,5,1],[3,10,1],[0,2,1],[0,6,1]]}
+101
+------------------------------------
+Command: FindTags
+Row: 0, Col: 4, Confidence: 0.600000
+Row: 0, Col: 7, Confidence: 0.400000
+Row: 0, Col: 5, Confidence: 0.200000
+Row: 3, Col: 10, Confidence: 0.200000
+Row: 0, Col: 2, Confidence: 0.200000
+Row: 0, Col: 6, Confidence: 0.200000
+googleAssistantEventHandler event: Google_SetDisplay, data: off
+googleAssistantEventHandler event: Google_SetDisplay, data: on
+googleAssistantEventHandler event: Google_InsertItem, data: {"Info":"red cable into a small box with tags red black cable computer","Quantity":1}
+{"command":"InsertItem", "data":{"Info":"red cable into a small box with tags red black cable computer","Quantity":1}}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"InsertItem\",\"Success\":true,\"Row\":0,\"Col\":10}"
+------------------------------------
+{"Command":"InsertItem","Success":true,"Row":0,"Col":10}
+56
+------------------------------------
+Command: InsertItem
+row: 0, col: 10, success: true
+googleAssistantEventHandler event: Google_FindTags, data: red cable
+{"command":"FindTags", "data":"red cable"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"FindTags\",\"Count\":2,\"Tags\":2,\"Result\":[[0,10,2],[0,9,2]]}"
+------------------------------------
+{"Command":"FindTags","Count":2,"Tags":2,"Result":[[0,10,2],[0,9,2]]}
+69
+------------------------------------
+Command: FindTags
+Row: 0, Col: 10, Confidence: 1.000000
+Row: 0, Col: 9, Confidence: 1.000000
+googleAssistantEventHandler event: Google_RemoveItem, data: red cable
+{"command":"RemoveItem", "data":"red cable"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"RemoveItem\",\"Success\":true,\"Quantity\":5}"
+------------------------------------
+{"Command":"RemoveItem","Success":true,"Quantity":5}
+52
+------------------------------------
+Command: RemoveItem
+removeItemResponseHandler
+googleAssistantEventHandler event: Google_FindTags, data: red cable
+{"command":"FindTags", "data":"red cable"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"FindTags\",\"Count\":1,\"Tags\":2,\"Result\":[[0,9,2]]}"
+------------------------------------
+{"Command":"FindTags","Count":1,"Tags":2,"Result":[[0,9,2]]}
+60
+------------------------------------
+Command: FindTags
+Row: 0, Col: 9, Confidence: 1.000000
+googleAssistantEventHandler event: Google_SetDisplay, data: off
+googleAssistantEventHandler event: Google_SetDisplay, data: on
+googleAssistantEventHandler event: Google_InsertItem, data: {"Info":"purple ball with tags purple ball bouncy into a big box","Quantity":1}
+{"command":"InsertItem", "data":{"Info":"purple ball with tags purple ball bouncy into a big box","Quantity":1}}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"InsertItem\",\"Success\":true,\"Row\":8,\"Col\":1}"
+------------------------------------
+{"Command":"InsertItem","Success":true,"Row":8,"Col":1}
+55
+------------------------------------
+Command: InsertItem
+row: 8, col: 1, success: true
+googleAssistantEventHandler event: Google_InsertItem, data: {"Info":"big purple ball with tags big purple ball bouncy into a big box","Quantity":1}
+{"command":"InsertItem", "data":{"Info":"big purple ball with tags big purple ball bouncy into a big box","Quantity":1}}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"InsertItem\",\"Success\":true,\"Row\":8,\"Col\":2}"
+------------------------------------
+{"Command":"InsertItem","Success":true,"Row":8,"Col":2}
+55
+------------------------------------
+Command: InsertItem
+row: 8, col: 2, success: true
+googleAssistantEventHandler event: Google_FindTags, data: purple ball
+{"command":"FindTags", "data":"purple ball"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"FindTags\",\"Count\":3,\"Tags\":2,\"Result\":[[8,2,2],[8,1,2],[0,5,1]]}"
+------------------------------------
+{"Command":"FindTags","Count":3,"Tags":2,"Result":[[8,2,2],[8,1,2],[0,5,1]]}
+76
+------------------------------------
+Command: FindTags
+Row: 8, Col: 2, Confidence: 1.000000
+Row: 8, Col: 1, Confidence: 1.000000
+Row: 0, Col: 5, Confidence: 0.500000
+googleAssistantEventHandler event: Google_FindTags, data: big purple ball
+{"command":"FindTags", "data":"big purple ball"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"FindTags\",\"Count\":3,\"Tags\":3,\"Result\":[[8,2,3],[8,1,2],[0,5,1]]}"
+------------------------------------
+{"Command":"FindTags","Count":3,"Tags":3,"Result":[[8,2,3],[8,1,2],[0,5,1]]}
+76
+------------------------------------
+Command: FindTags
+Row: 8, Col: 2, Confidence: 1.000000
+Row: 8, Col: 1, Confidence: 0.666667
+Row: 0, Col: 5, Confidence: 0.333333
+googleAssistantEventHandler event: Google_InsertItem, data: {"Info":"screwdriver bit","Quantity":1}
+{"command":"InsertItem", "data":{"Info":"screwdriver bit","Quantity":1}}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"InsertItem\",\"Success\":true,\"Row\":0,\"Col\":10}"
+------------------------------------
+{"Command":"InsertItem","Success":true,"Row":0,"Col":10}
+56
+------------------------------------
+Command: InsertItem
+row: 0, col: 10, success: true
+googleAssistantEventHandler event: Google_FindTags, data: screw
+{"command":"FindTags", "data":"screw"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"FindTags\",\"Count\":0,\"Tags\":1,\"Result\":[]}"
+------------------------------------
+{"Command":"FindTags","Count":0,"Tags":1,"Result":[]}
+53
+------------------------------------
+Command: FindTags
+googleAssistantEventHandler event: Google_FindTags, data: screw driver
+{"command":"FindTags", "data":"screw driver"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"FindTags\",\"Count\":0,\"Tags\":2,\"Result\":[]}"
+------------------------------------
+{"Command":"FindTags","Count":0,"Tags":2,"Result":[]}
+53
+------------------------------------
+Command: FindTags
+googleAssistantEventHandler event: Google_FindTags, data: screw driver
+{"command":"FindTags", "data":"screw driver"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"FindTags\",\"Count\":0,\"Tags\":2,\"Result\":[]}"
+------------------------------------
+{"Command":"FindTags","Count":0,"Tags":2,"Result":[]}
+53
+------------------------------------
+Command: FindTags
+googleAssistantEventHandler event: Google_InsertItem, data: {"Info":"black pocket knife","Quantity":1}
+{"command":"InsertItem", "data":{"Info":"black pocket knife","Quantity":1}}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"InsertItem\",\"Success\":true,\"Row\":0,\"Col\":11}"
+------------------------------------
+{"Command":"InsertItem","Success":true,"Row":0,"Col":11}
+56
+------------------------------------
+Command: InsertItem
+row: 0, col: 11, success: true
+googleAssistantEventHandler event: Google_FindTags, data: pocket knife
+{"command":"FindTags", "data":"pocket knife"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"FindTags\",\"Count\":2,\"Tags\":2,\"Result\":[[0,11,2],[0,7,2]]}"
+------------------------------------
+{"Command":"FindTags","Count":2,"Tags":2,"Result":[[0,11,2],[0,7,2]]}
+69
+------------------------------------
+Command: FindTags
+Row: 0, Col: 11, Confidence: 1.000000
+Row: 0, Col: 7, Confidence: 1.000000
+googleAssistantEventHandler event: Google_FindTags, data: black pocket knife
+{"command":"FindTags", "data":"black pocket knife"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"FindTags\",\"Count\":3,\"Tags\":3,\"Result\":[[0,11,3],[0,7,2],[0,9,1]]}"
+------------------------------------
+{"Command":"FindTags","Count":3,"Tags":3,"Result":[[0,11,3],[0,7,2],[0,9,1]]}
+77
+------------------------------------
+Command: FindTags
+Row: 0, Col: 11, Confidence: 1.000000
+Row: 0, Col: 7, Confidence: 0.666667
+Row: 0, Col: 9, Confidence: 0.333333
+googleAssistantEventHandler event: Google_InsertItem, data: {"Info":"bike light","Quantity":1}
+{"command":"InsertItem", "data":{"Info":"bike light","Quantity":1}}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"InsertItem\",\"Success\":true,\"Row\":0,\"Col\":12}"
+------------------------------------
+{"Command":"InsertItem","Success":true,"Row":0,"Col":12}
+56
+------------------------------------
+Command: InsertItem
+row: 0, col: 12, success: true
+googleAssistantEventHandler event: Google_AddTags, data: red to bike light
+{"command":"AddTags", "data":"red to bike light"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"AddTags\",\"Success\":true,\"Count\":1}"
+------------------------------------
+{"Command":"AddTags","Success":true,"Count":1}
+46
+------------------------------------
+Command: AddTags
+addTagsResponseHandler
+googleAssistantEventHandler event: Google_FindTags, data: bike light
+{"command":"FindTags", "data":"bike light"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"FindTags\",\"Count\":2,\"Tags\":2,\"Result\":[[0,12,2],[0,4,1]]}"
+------------------------------------
+{"Command":"FindTags","Count":2,"Tags":2,"Result":[[0,12,2],[0,4,1]]}
+69
+------------------------------------
+Command: FindTags
+Row: 0, Col: 12, Confidence: 1.000000
+Row: 0, Col: 4, Confidence: 0.500000
+googleAssistantEventHandler event: Google_FindTags, data: red bike light
+{"command":"FindTags", "data":"red bike light"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"FindTags\",\"Count\":3,\"Tags\":3,\"Result\":[[0,12,3],[0,9,1],[0,4,1]]}"
+------------------------------------
+{"Command":"FindTags","Count":3,"Tags":3,"Result":[[0,12,3],[0,9,1],[0,4,1]]}
+77
+------------------------------------
+Command: FindTags
+Row: 0, Col: 12, Confidence: 1.000000
+Row: 0, Col: 9, Confidence: 0.333333
+Row: 0, Col: 4, Confidence: 0.333333
+googleAssistantEventHandler event: Google_InsertItem, data: {"Info":"volt battery","Quantity":9}
+{"command":"InsertItem", "data":{"Info":"volt battery","Quantity":9}}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"InsertItem\",\"Success\":true,\"Row\":0,\"Col\":13}"
+------------------------------------
+{"Command":"InsertItem","Success":true,"Row":0,"Col":13}
+56
+------------------------------------
+Command: InsertItem
+row: 0, col: 13, success: true
+googleAssistantEventHandler event: Google_InsertItem, data: {"Info":"keychain","Quantity":1}
+{"command":"InsertItem", "data":{"Info":"keychain","Quantity":1}}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"InsertItem\",\"Success\":true,\"Row\":0,\"Col\":14}"
+------------------------------------
+{"Command":"InsertItem","Success":true,"Row":0,"Col":14}
+56
+------------------------------------
+Command: InsertItem
+row: 0, col: 14, success: true
+googleAssistantEventHandler event: Google_RemoveItem, data: bike light
+{"command":"RemoveItem", "data":"bike light"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"RemoveItem\",\"Success\":true,\"Quantity\":4}"
+------------------------------------
+{"Command":"RemoveItem","Success":true,"Quantity":4}
+52
+------------------------------------
+Command: RemoveItem
+removeItemResponseHandler
+googleAssistantEventHandler event: Google_InsertItem, data: {"Info":"bike light","Quantity":1}
+{"command":"InsertItem", "data":{"Info":"bike light","Quantity":1}}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"InsertItem\",\"Success\":true,\"Row\":0,\"Col\":12}"
+------------------------------------
+{"Command":"InsertItem","Success":true,"Row":0,"Col":12}
+56
+------------------------------------
+Command: InsertItem
+row: 0, col: 12, success: true
+googleAssistantEventHandler event: Google_AddTags, data: bright red to bike light
+{"command":"AddTags", "data":"bright red to bike light"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"AddTags\",\"Success\":true,\"Count\":2}"
+------------------------------------
+{"Command":"AddTags","Success":true,"Count":2}
+46
+------------------------------------
+Command: AddTags
+addTagsResponseHandler
+googleAssistantEventHandler event: Google_AddTags, data: battery to bike light
+{"command":"AddTags", "data":"battery to bike light"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"AddTags\",\"Success\":true,\"Count\":1}"
+------------------------------------
+{"Command":"AddTags","Success":true,"Count":1}
+46
+------------------------------------
+Command: AddTags
+addTagsResponseHandler
+googleAssistantEventHandler event: Google_FindTags, data: battery
+{"command":"FindTags", "data":"battery"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"FindTags\",\"Count\":4,\"Tags\":1,\"Result\":[[0,0,1],[0,3,1],[0,12,1],[0,13,1]]}"
+------------------------------------
+{"Command":"FindTags","Count":4,"Tags":1,"Result":[[0,0,1],[0,3,1],[0,12,1],[0,13,1]]}
+86
+------------------------------------
+Command: FindTags
+Row: 0, Col: 0, Confidence: 1.000000
+Row: 0, Col: 3, Confidence: 1.000000
+Row: 0, Col: 12, Confidence: 1.000000
+Row: 0, Col: 13, Confidence: 1.000000
+googleAssistantEventHandler event: Google_InsertItem, data: {"Info":"falhaber motor into a big box","Quantity":1}
+{"command":"InsertItem", "data":{"Info":"falhaber motor into a big box","Quantity":1}}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"InsertItem\",\"Success\":true,\"Row\":8,\"Col\":3}"
+------------------------------------
+{"Command":"InsertItem","Success":true,"Row":8,"Col":3}
+55
+------------------------------------
+Command: InsertItem
+row: 8, col: 3, success: true
+googleAssistantEventHandler event: Google_AddTags, data: gearbox to falhaber motor
+{"command":"AddTags", "data":"gearbox to falhaber motor"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"AddTags\",\"Success\":true,\"Count\":1}"
+------------------------------------
+{"Command":"AddTags","Success":true,"Count":1}
+46
+------------------------------------
+Command: AddTags
+addTagsResponseHandler
+googleAssistantEventHandler event: Google_InsertItem, data: {"Info":"white electrical tape into a big box","Quantity":1}
+{"command":"InsertItem", "data":{"Info":"white electrical tape into a big box","Quantity":1}}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"InsertItem\",\"Success\":true,\"Row\":8,\"Col\":4}"
+------------------------------------
+{"Command":"InsertItem","Success":true,"Row":8,"Col":4}
+55
+------------------------------------
+Command: InsertItem
+row: 8, col: 4, success: true
+googleAssistantEventHandler event: Google_InsertItem, data: {"Info":"white LED into a small box","Quantity":150}
+{"command":"InsertItem", "data":{"Info":"white LED into a small box","Quantity":150}}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"InsertItem\",\"Success\":true,\"Row\":0,\"Col\":15}"
+------------------------------------
+{"Command":"InsertItem","Success":true,"Row":0,"Col":15}
+56
+------------------------------------
+Command: InsertItem
+row: 0, col: 15, success: true
+googleAssistantEventHandler event: Google_FindTags, data: white tape
+{"command":"FindTags", "data":"white tape"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"FindTags\",\"Count\":2,\"Tags\":2,\"Result\":[[8,4,2],[0,15,1]]}"
+------------------------------------
+{"Command":"FindTags","Count":2,"Tags":2,"Result":[[8,4,2],[0,15,1]]}
+69
+------------------------------------
+Command: FindTags
+Row: 8, Col: 4, Confidence: 1.000000
+Row: 0, Col: 15, Confidence: 0.500000
+googleAssistantEventHandler event: Google_FindTags, data: white electrical tape diode
+{"command":"FindTags", "data":"white electrical tape diode"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"FindTags\",\"Count\":4,\"Tags\":4,\"Result\":[[8,4,3],[0,15,1],[0,4,1],[3,10,1]]}"
+------------------------------------
+{"Command":"FindTags","Count":4,"Tags":4,"Result":[[8,4,3],[0,15,1],[0,4,1],[3,10,1]]}
+86
+------------------------------------
+Command: FindTags
+Row: 8, Col: 4, Confidence: 0.750000
+Row: 0, Col: 15, Confidence: 0.250000
+Row: 0, Col: 4, Confidence: 0.250000
+Row: 3, Col: 10, Confidence: 0.250000
+googleAssistantEventHandler event: Google_SetDisplay, data: off
+googleAssistantEventHandler event: Google_FindItem, data: white electrical tape
+{"command":"FindItem", "data":"white electrical tape"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"FindItem\",\"Count\":1,\"Result\":[{\"Name\":\"white electrical tape\",\"Quantity\":1,\"Row\":8,\"Col\":4}]}"
+------------------------------------
+{"Command":"FindItem","Count":1,"Result":[{"Name":"white electrical tape","Quantity":1,"Row":8,"Col":4}]}
+105
+------------------------------------
+Command: FindItem
+item: white electrical tape, row: 8, col: 4, quantity: 1
+googleAssistantEventHandler event: Google_FindItem, data: white electrical tape
+{"command":"FindItem", "data":"white electrical tape"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"FindItem\",\"Count\":1,\"Result\":[{\"Name\":\"white electrical tape\",\"Quantity\":1,\"Row\":8,\"Col\":4}]}"
+------------------------------------
+{"Command":"FindItem","Count":1,"Result":[{"Name":"white electrical tape","Quantity":1,"Row":8,"Col":4}]}
+105
+------------------------------------
+Command: FindItem
+item: white electrical tape, row: 8, col: 4, quantity: 1
+googleAssistantEventHandler event: Google_InsertItem, data: {"Info":"spoon into a little container","Quantity":1}
+{"command":"InsertItem", "data":{"Info":"spoon into a little container","Quantity":1}}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"InsertItem\",\"Success\":true,\"Row\":1,\"Col\":0}"
+------------------------------------
+{"Command":"InsertItem","Success":true,"Row":1,"Col":0}
+55
+------------------------------------
+Command: InsertItem
+row: 1, col: 0, success: true
+googleAssistantEventHandler event: Google_AddTags, data: silver to spoon
+{"command":"AddTags", "data":"silver to spoon"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"AddTags\",\"Success\":true,\"Count\":1}"
+------------------------------------
+{"Command":"AddTags","Success":true,"Count":1}
+46
+------------------------------------
+Command: AddTags
+addTagsResponseHandler
+googleAssistantEventHandler event: Google_InsertItem, data: {"Info":"white ribbon into a small box","Quantity":1}
+{"command":"InsertItem", "data":{"Info":"white ribbon into a small box","Quantity":1}}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"InsertItem\",\"Success\":true,\"Row\":1,\"Col\":1}"
+------------------------------------
+{"Command":"InsertItem","Success":true,"Row":1,"Col":1}
+55
+------------------------------------
+Command: InsertItem
+row: 1, col: 1, success: true
+googleAssistantEventHandler event: Google_InsertItem, data: {"Info":"tiny 85 little container","Quantity":180}
+{"command":"InsertItem", "data":{"Info":"tiny 85 little container","Quantity":180}}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"InsertItem\",\"Success\":true,\"Row\":1,\"Col\":2}"
+------------------------------------
+{"Command":"InsertItem","Success":true,"Row":1,"Col":2}
+55
+------------------------------------
+Command: InsertItem
+row: 1, col: 2, success: true
+googleAssistantEventHandler event: Google_InsertItem, data: {"Info":"stepper motor","Quantity":1}
+{"command":"InsertItem", "data":{"Info":"stepper motor","Quantity":1}}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"InsertItem\",\"Success\":true,\"Row\":1,\"Col\":3}"
+------------------------------------
+{"Command":"InsertItem","Success":true,"Row":1,"Col":3}
+55
+------------------------------------
+Command: InsertItem
+row: 1, col: 3, success: true
+googleAssistantEventHandler event: Google_AddTags, data: wire 5 volts Littleford to stepper motor
+{"command":"AddTags", "data":"wire 5 volts Littleford to stepper motor"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"AddTags\",\"Success\":true,\"Count\":4}"
+------------------------------------
+{"Command":"AddTags","Success":true,"Count":4}
+46
+------------------------------------
+Command: AddTags
+addTagsResponseHandler
+googleAssistantEventHandler event: Google_InsertItem, data: {"Info":"buzzer","Quantity":3}
+{"command":"InsertItem", "data":{"Info":"buzzer","Quantity":3}}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"InsertItem\",\"Success\":true,\"Row\":1,\"Col\":4}"
+------------------------------------
+{"Command":"InsertItem","Success":true,"Row":1,"Col":4}
+55
+------------------------------------
+Command: InsertItem
+row: 1, col: 4, success: true
+googleAssistantEventHandler event: Google_InsertItem, data: {"Info":"small screwdriver","Quantity":10}
+{"command":"InsertItem", "data":{"Info":"small screwdriver","Quantity":10}}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"InsertItem\",\"Success\":true,\"Row\":1,\"Col\":5}"
+------------------------------------
+{"Command":"InsertItem","Success":true,"Row":1,"Col":5}
+55
+------------------------------------
+Command: InsertItem
+row: 1, col: 5, success: true
+googleAssistantEventHandler event: Google_InsertItem, data: {"Info":"red zip tie","Quantity":3}
+{"command":"InsertItem", "data":{"Info":"red zip tie","Quantity":3}}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"InsertItem\",\"Success\":true,\"Row\":1,\"Col\":6}"
+------------------------------------
+{"Command":"InsertItem","Success":true,"Row":1,"Col":6}
+55
+------------------------------------
+Command: InsertItem
+row: 1, col: 6, success: true
+googleAssistantEventHandler event: Google_AddTags, data: small to Red zip tie
+{"command":"AddTags", "data":"small to Red zip tie"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"AddTags\",\"Success\":true,\"Count\":1}"
+------------------------------------
+{"Command":"AddTags","Success":true,"Count":1}
+46
+------------------------------------
+Command: AddTags
+addTagsResponseHandler
+googleAssistantEventHandler event: Google_FindTags, data: red zip tie
+{"command":"FindTags", "data":"red zip tie"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"FindTags\",\"Count\":3,\"Tags\":3,\"Result\":[[1,6,3],[0,9,1],[0,12,1]]}"
+------------------------------------
+{"Command":"FindTags","Count":3,"Tags":3,"Result":[[1,6,3],[0,9,1],[0,12,1]]}
+77
+------------------------------------
+Command: FindTags
+Row: 1, Col: 6, Confidence: 1.000000
+Row: 0, Col: 9, Confidence: 0.333333
+Row: 0, Col: 12, Confidence: 0.333333
+googleAssistantEventHandler event: Google_InsertItem, data: {"Info":"LCD display","Quantity":1}
+{"command":"InsertItem", "data":{"Info":"LCD display","Quantity":1}}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"InsertItem\",\"Success\":true,\"Row\":1,\"Col\":7}"
+------------------------------------
+{"Command":"InsertItem","Success":true,"Row":1,"Col":7}
+55
+------------------------------------
+Command: InsertItem
+row: 1, col: 7, success: true
+googleAssistantEventHandler event: Google_InsertItem, data: {"Info":"breadboard headers","Quantity":100}
+{"command":"InsertItem", "data":{"Info":"breadboard headers","Quantity":100}}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"InsertItem\",\"Success\":true,\"Row\":1,\"Col\":8}"
+------------------------------------
+{"Command":"InsertItem","Success":true,"Row":1,"Col":8}
+55
+------------------------------------
+Command: InsertItem
+row: 1, col: 8, success: true
+googleAssistantEventHandler event: Google_InsertItem, data: {"Info":"small potentiometer","Quantity":five}
+{"command":"InsertItem", "data":{"Info":"small potentiometer","Quantity":five}}
+googleAssistantEventHandler event: Google_InsertItem, data: {"Info":"of line reader","Quantity":1}
+{"command":"InsertItem", "data":{"Info":"of line reader","Quantity":1}}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"InsertItem\",\"Success\":true,\"Row\":1,\"Col\":9}"
+------------------------------------
+{"Command":"InsertItem","Success":true,"Row":1,"Col":9}
+55
+------------------------------------
+Command: InsertItem
+row: 1, col: 9, success: true
+googleAssistantEventHandler event: Google_InsertItem, data: {"Info":"line reader","Quantity":1}
+{"command":"InsertItem", "data":{"Info":"line reader","Quantity":1}}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"InsertItem\",\"Success\":true,\"Row\":1,\"Col\":10}"
+------------------------------------
+{"Command":"InsertItem","Success":true,"Row":1,"Col":10}
+56
+------------------------------------
+Command: InsertItem
+row: 1, col: 10, success: true
+googleAssistantEventHandler event: Google_AddTags, data: red to line reader
+{"command":"AddTags", "data":"red to line reader"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"AddTags\",\"Success\":true,\"Count\":1}"
+------------------------------------
+{"Command":"AddTags","Success":true,"Count":1}
+46
+------------------------------------
+Command: AddTags
+addTagsResponseHandler
+googleAssistantEventHandler event: Google_InsertItem, data: {"Info":"jumpers","Quantity":13}
+{"command":"InsertItem", "data":{"Info":"jumpers","Quantity":13}}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"InsertItem\",\"Success\":true,\"Row\":1,\"Col\":11}"
+------------------------------------
+{"Command":"InsertItem","Success":true,"Row":1,"Col":11}
+56
+------------------------------------
+Command: InsertItem
+row: 1, col: 11, success: true
+googleAssistantEventHandler event: Google_AddTags, data: green blue yellow to Jumpers
+{"command":"AddTags", "data":"green blue yellow to Jumpers"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"AddTags\",\"Success\":true,\"Count\":3}"
+------------------------------------
+{"Command":"AddTags","Success":true,"Count":3}
+46
+------------------------------------
+Command: AddTags
+addTagsResponseHandler
+googleAssistantEventHandler event: Google_FindTags, data: green jumper
+{"command":"FindTags", "data":"green jumper"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"FindTags\",\"Count\":2,\"Tags\":2,\"Result\":[[0,2,1],[1,11,1]]}"
+------------------------------------
+{"Command":"FindTags","Count":2,"Tags":2,"Result":[[0,2,1],[1,11,1]]}
+69
+------------------------------------
+Command: FindTags
+Row: 0, Col: 2, Confidence: 0.500000
+Row: 1, Col: 11, Confidence: 0.500000
+googleAssistantEventHandler event: Google_FindTags, data: Green jumpers
+{"command":"FindTags", "data":"Green jumpers"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"FindTags\",\"Count\":2,\"Tags\":2,\"Result\":[[1,11,2],[0,2,1]]}"
+------------------------------------
+{"Command":"FindTags","Count":2,"Tags":2,"Result":[[1,11,2],[0,2,1]]}
+69
+------------------------------------
+Command: FindTags
+Row: 1, Col: 11, Confidence: 1.000000
+Row: 0, Col: 2, Confidence: 0.500000
+googleAssistantEventHandler event: Google_InsertItem, data: {"Info":"slow potentiometer","Quantity":6}
+{"command":"InsertItem", "data":{"Info":"slow potentiometer","Quantity":6}}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"InsertItem\",\"Success\":true,\"Row\":1,\"Col\":12}"
+------------------------------------
+{"Command":"InsertItem","Success":true,"Row":1,"Col":12}
+56
+------------------------------------
+Command: InsertItem
+row: 1, col: 12, success: true
+googleAssistantEventHandler event: Google_AddTags, data: Bluetooth slow potentiometer
+{"command":"AddTags", "data":"Bluetooth slow potentiometer"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"AddTags\",\"Success\":false}"
+------------------------------------
+{"Command":"AddTags","Success":false}
+37
+------------------------------------
+Command: AddTags
+addTagsResponseHandler
+googleAssistantEventHandler event: Google_AddTags, data: Bluetooth slow potentiometer
+{"command":"AddTags", "data":"Bluetooth slow potentiometer"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"AddTags\",\"Success\":false}"
+------------------------------------
+{"Command":"AddTags","Success":false}
+37
+------------------------------------
+Command: AddTags
+addTagsResponseHandler
+googleAssistantEventHandler event: Google_AddTags, data: blue to slow potentiometer
+{"command":"AddTags", "data":"blue to slow potentiometer"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"AddTags\",\"Success\":true,\"Count\":1}"
+------------------------------------
+{"Command":"AddTags","Success":true,"Count":1}
+46
+------------------------------------
+Command: AddTags
+addTagsResponseHandler
+googleAssistantEventHandler event: Google_FindTags, data: blue
+{"command":"FindTags", "data":"blue"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"FindTags\",\"Count\":2,\"Tags\":1,\"Result\":[[1,11,1],[1,12,1]]}"
+------------------------------------
+{"Command":"FindTags","Count":2,"Tags":1,"Result":[[1,11,1],[1,12,1]]}
+70
+------------------------------------
+Command: FindTags
+Row: 1, Col: 11, Confidence: 1.000000
+Row: 1, Col: 12, Confidence: 1.000000
+googleAssistantEventHandler event: Google_InsertItem, data: {"Info":"lens cleaner","Quantity":1}
+{"command":"InsertItem", "data":{"Info":"lens cleaner","Quantity":1}}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"InsertItem\",\"Success\":true,\"Row\":1,\"Col\":13}"
+------------------------------------
+{"Command":"InsertItem","Success":true,"Row":1,"Col":13}
+56
+------------------------------------
+Command: InsertItem
+row: 1, col: 13, success: true
+googleAssistantEventHandler event: Google_AddTags, data: glasses to lens cleaner
+{"command":"AddTags", "data":"glasses to lens cleaner"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"AddTags\",\"Success\":true,\"Count\":1}"
+------------------------------------
+{"Command":"AddTags","Success":true,"Count":1}
+46
+------------------------------------
+Command: AddTags
+addTagsResponseHandler
+googleAssistantEventHandler event: Google_AddTags, data: clean to lens cleaner
+{"command":"AddTags", "data":"clean to lens cleaner"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"AddTags\",\"Success\":true,\"Count\":1}"
+------------------------------------
+{"Command":"AddTags","Success":true,"Count":1}
+46
+------------------------------------
+Command: AddTags
+addTagsResponseHandler
+googleAssistantEventHandler event: Google_InsertItem, data: {"Info":"particle photon","Quantity":1}
+{"command":"InsertItem", "data":{"Info":"particle photon","Quantity":1}}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"InsertItem\",\"Success\":true,\"Row\":1,\"Col\":14}"
+------------------------------------
+{"Command":"InsertItem","Success":true,"Row":1,"Col":14}
+56
+------------------------------------
+Command: InsertItem
+row: 1, col: 14, success: true
+googleAssistantEventHandler event: Google_InsertItem, data: {"Info":"orange Connex piece","Quantity":3}
+{"command":"InsertItem", "data":{"Info":"orange Connex piece","Quantity":3}}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"InsertItem\",\"Success\":true,\"Row\":1,\"Col\":15}"
+------------------------------------
+{"Command":"InsertItem","Success":true,"Row":1,"Col":15}
+56
+------------------------------------
+Command: InsertItem
+row: 1, col: 15, success: true
+googleAssistantEventHandler event: Google_InsertItem, data: {"Info":"cork","Quantity":1}
+{"command":"InsertItem", "data":{"Info":"cork","Quantity":1}}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"InsertItem\",\"Success\":true,\"Row\":2,\"Col\":0}"
+------------------------------------
+{"Command":"InsertItem","Success":true,"Row":2,"Col":0}
+55
+------------------------------------
+Command: InsertItem
+row: 2, col: 0, success: true
+googleAssistantEventHandler event: Google_AddTags, data: wine to Cork
+{"command":"AddTags", "data":"wine to Cork"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"AddTags\",\"Success\":true,\"Count\":1}"
+------------------------------------
+{"Command":"AddTags","Success":true,"Count":1}
+46
+------------------------------------
+Command: AddTags
+addTagsResponseHandler
+googleAssistantEventHandler event: Google_FindTags, data: wine
+{"command":"FindTags", "data":"wine"}
+azureFunctionEventResponseHandler
+event: hook-response/callAzureFunctionEvent/0
+data: "{\"Command\":\"FindTags\",\"Count\":1,\"Tags\":1,\"Result\":[[2,0,1]]}"
+------------------------------------
+{"Command":"FindTags","Count":1,"Tags":1,"Result":[[2,0,1]]}
+60
+------------------------------------
+Command: FindTags
+Row: 2, Col: 0, Confidence: 1.000000

@@ -422,8 +422,6 @@ void azureFunctionEventResponseHandler(const char *event, const char *data)
       break;
     }
   }
-
-  setDisplay(ON);
 }
 
 int sRow, sCol;
@@ -441,15 +439,20 @@ void findItemResponseHandler(JsonObject& json)
     const char* item = result["Name"];
     int quantity = result["Quantity"];
     int row = result["Row"];
-    int column = result["Col"];
+    int col = result["Col"];
 
     //lightBox(row, column, colors[1]);
     sRow = row;
-    sCol = column;
+    sCol = col;
     sColor = colors[1];
     sSet = true;
 
-    Serial.printlnf("item: %s, row: %d, col: %d, quantity: %d", item, row, column, quantity);
+    setDisplay(ON);
+    matrix.fillScreen(0);
+    lightBox(row, col, colors[1]);
+    matrix.show();
+
+    Serial.printlnf("item: %s, row: %d, col: %d, quantity: %d", item, row, col, quantity);
 
     text = item;
     textLength = text.length();
@@ -466,6 +469,7 @@ void findTagsResponseHandler(JsonObject& json)
   {
     JsonArray& items = json["Result"];
 
+    setDisplay(ON);
     matrix.fillScreen(0);
 
     for (int i = 0; i < count; i++)
@@ -497,7 +501,11 @@ void insertItemResponseHandler(JsonObject& json)
   sColor = colors[1];
   sSet = true;
 
-  Serial.printlnf("row: %d, col: %d, insertSucceeded: %s", row, col, success ? "true" : "false");
+  matrix.fillScreen(0);
+  lightBox(row, col, colors[1]);
+  matrix.show();
+
+  Serial.printlnf("row: %d, col: %d, success: %s", row, col, success ? "true" : "false");
 }
 
 void removeItemResponseHandler(JsonObject& json)
@@ -523,6 +531,17 @@ void updateQuantityResponseHandler(JsonObject& json)
 void showAllBoxesResponseHandler(JsonObject& json)
 {
   Serial.println("showAllBoxesResponseHandler");
+
+  const char* cmd = json["Command"];
+  int count = json["Count"];
+  JsonArray& coords = json["Coords"];
+
+  matrix.fillScreen(0);
+  for (int i = 0; i < count; i++)
+  {
+    lightBox(coords[i][0], coords[i][1], colors[1]);
+  }
+  matrix.show();
 }
 
 
