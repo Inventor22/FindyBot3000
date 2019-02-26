@@ -533,11 +533,13 @@ void showAllBoxesResponseHandler(JsonObject& json)
   int count = json["Count"];
   const char* coordsJson = json["Coords"];
 
-  char* coords = coordsJson;
+  const int len = strlen(coordsJson) + 1;
+  char coordsStr[len];
+  memcpy(coordsStr, coordsJson, len);
 
   matrix.fillScreen(0);
 
-  char* rowColStr = strtok ((char*)coords, ",");
+  char* rowColStr = strtok (coordsStr, ",");
   while (rowColStr != NULL)
   {
     int row = atoi(rowColStr);
