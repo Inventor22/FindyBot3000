@@ -539,16 +539,11 @@ void showAllBoxesResponseHandler(JsonObject& json)
   {
     int row = coordsJson[i] - 'a';
     int col = coordsJson[i+1] - 'a';
-    Serial.printf("[%d,%d],", row, col);
-    //lightBox(row, col, colors[1]);
+    //Serial.printf("[%d,%d],", row, col);
+    lightBox(row, col, colors[r(0, colorCount-1)]/*colors[1]*/);
   }
+  //Serial.println();
 
-  Serial.println();
-
-  // for (int i = 0; i < count; i++)
-  // {
-  //   lightBox(coords[i][0], coords[i][1], colors[1]);
-  // }
   matrix.show();
 }
 
