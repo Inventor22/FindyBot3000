@@ -659,24 +659,44 @@ WHERE LOWER(Items.Name) LIKE '{item.ToLowerInvariant()}'";
 
                 try
                 {
-                    List<object> coords = new List<object>();
-
-                    if (reader.HasRows)
+                    if (true) // This gets encoded as unicode. 
                     {
-                        while (reader.Read())
+                        List<string> coordsList = new List<string>();
+                        while(reader.Read())
                         {
-                            coords.Add(new[] { (int)reader[Dbo.Items.Row], (int)reader[Dbo.Items.Col] });
+                            coordsList.Add($"{(int)reader[Dbo.Items.Row]},{(int)reader[Dbo.Items.Col]}");
                         }
+                        string coords = string.Join(",", coordsList);
+                        dynamic jsonResponse = new
+                        {
+                            Command = Command.ShowAllBoxes,
+                            Count = coordsList.Count,
+                            Coords = coords
+                        };
+
+                        return JsonConvert.SerializeObject(jsonResponse);
                     }
-
-                    dynamic jsonResponse = new
+                    else
                     {
-                        Command = Command.ShowAllBoxes,
-                        Count = coords.Count,
-                        Coords = coords
-                    };
+                        List<object> coords = new List<object>();
 
-                    return JsonConvert.SerializeObject(jsonResponse);
+                        if (reader.HasRows)
+                        {
+                            while (reader.Read())
+                            {
+                                coords.Add(new[] { (int)reader[Dbo.Items.Row], (int)reader[Dbo.Items.Col] });
+                            }
+                        }
+
+                        dynamic jsonResponse = new
+                        {
+                            Command = Command.ShowAllBoxes,
+                            Count = coords.Count,
+                            Coords = coords
+                        };
+
+                        return JsonConvert.SerializeObject(jsonResponse);
+                    }
                 }
                 catch (Exception)
                 {

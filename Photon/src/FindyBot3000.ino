@@ -27,7 +27,7 @@
 #define ON true
 #define OFF false
 
-StaticJsonBuffer<1000> jsonBuffer;
+StaticJsonBuffer<3000> jsonBuffer;
 
 const PROGMEM unsigned char fire[] = {
   0B00010000,
@@ -316,12 +316,9 @@ void setDisplay(const char *data)
 {
   if (data == NULL) return;
 
-  String onOffText = data;
-  onOffText = onOffText.toLowerCase();
-
-  if (strstr(onOffText, "on")) {
+  if (strstr(data, "on")) {
     setDisplay(true);
-  } else if (strstr(onOffText, "off")) {
+  } else if (strstr(data, "off")) {
     setDisplay(false);
   }
 }
@@ -534,13 +531,29 @@ void showAllBoxesResponseHandler(JsonObject& json)
 
   const char* cmd = json["Command"];
   int count = json["Count"];
-  JsonArray& coords = json["Coords"];
+  const char* coordsJson = json["Coords"];
+
+  char* coords = coordsJson;
 
   matrix.fillScreen(0);
-  for (int i = 0; i < count; i++)
+
+  char* rowColStr = strtok ((char*)coords, ",");
+  while (rowColStr != NULL)
   {
-    lightBox(coords[i][0], coords[i][1], colors[1]);
+    int row = atoi(rowColStr);
+    rowColStr = strtok (NULL, ",");
+    if (rowColStr) {
+      int col = atoi(rowColStr);
+      Serial.printf("[%d,%d],", row, col);
+      //lightBox(row, col, colors[1]);
+    }
   }
+  Serial.println();
+
+  // for (int i = 0; i < count; i++)
+  // {
+  //   lightBox(coords[i][0], coords[i][1], colors[1]);
+  // }
   matrix.show();
 }
 
