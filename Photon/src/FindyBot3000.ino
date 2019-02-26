@@ -533,23 +533,16 @@ void showAllBoxesResponseHandler(JsonObject& json)
   int count = json["Count"];
   const char* coordsJson = json["Coords"];
 
-  const int len = strlen(coordsJson) + 1;
-  char coordsStr[len];
-  memcpy(coordsStr, coordsJson, len);
-
   matrix.fillScreen(0);
 
-  char* rowColStr = strtok (coordsStr, ",");
-  while (rowColStr != NULL)
+  for (int i = 0; i < count*2; i += 2)
   {
-    int row = atoi(rowColStr);
-    rowColStr = strtok (NULL, ",");
-    if (rowColStr) {
-      int col = atoi(rowColStr);
-      Serial.printf("[%d,%d],", row, col);
-      //lightBox(row, col, colors[1]);
-    }
+    int row = coordsJson[i] - 'a';
+    int col = coordsJson[i+1] - 'a';
+    Serial.printf("[%d,%d],", row, col);
+    //lightBox(row, col, colors[1]);
   }
+
   Serial.println();
 
   // for (int i = 0; i < count; i++)

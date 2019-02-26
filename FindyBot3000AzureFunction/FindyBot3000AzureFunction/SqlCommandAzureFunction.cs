@@ -661,16 +661,20 @@ WHERE LOWER(Items.Name) LIKE '{item.ToLowerInvariant()}'";
                 {
                     if (true) // This gets encoded as unicode. 
                     {
-                        List<string> coordsList = new List<string>();
+                        StringBuilder sb = new StringBuilder();
+
                         while(reader.Read())
                         {
-                            coordsList.Add($"{(int)reader[Dbo.Items.Row]},{(int)reader[Dbo.Items.Col]}");
+                            sb.Append((char)((int)reader[Dbo.Items.Row] + 'a'));
+                            sb.Append((char)((int)reader[Dbo.Items.Col] + 'a'));
                         }
-                        string coords = string.Join(",", coordsList);
+
+                        string coords = sb.ToString();
+
                         dynamic jsonResponse = new
                         {
                             Command = Command.ShowAllBoxes,
-                            Count = coordsList.Count,
+                            Count = coords.Length/2,
                             Coords = coords
                         };
 
