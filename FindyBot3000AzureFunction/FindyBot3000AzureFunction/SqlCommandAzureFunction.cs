@@ -15,18 +15,6 @@ using Microsoft.Extensions.Configuration;
 
 namespace FindyBot3000.AzureFunction
 {
-    public class Command
-    {
-        public const string FindItem = "FindItem";
-        public const string FindTags = "FindTags";
-        public const string InsertItem = "InsertItem";
-        public const string RemoveItem = "RemoveItem";
-        public const string AddTags = "AddTags";
-        public const string UpdateQuantity = "UpdateQuantity";
-        public const string SetQuantity = "SetQuantity";
-        public const string ShowAllBoxes = "ShowAllBoxes";
-    }
-
     // Sql Table column names
     public class Dbo
     {
@@ -36,7 +24,7 @@ namespace FindyBot3000.AzureFunction
             public const string Quantity = "Quantity";
             public const string Row = "Row";
             public const string Col = "Col";
-            public const string SmallBox = "SmallBox";
+            public const string IsSmallBox = "IsSmallBox";
             public const string DateCreated = "DateCreated";
             public const string LastUpdated = "LastUpdated";
         }
@@ -182,35 +170,35 @@ namespace FindyBot3000.AzureFunction
 
                 switch (command)
                 {
-                    case Command.FindItem:
+                    case Commands.FindItem:
                         response = FindItem(data, connection, log);
                         break;
 
-                    case Command.FindTags:
+                    case Commands.FindTags:
                         response = FindTags(data, connection, log);
                         break;
 
-                    case Command.InsertItem:
+                    case Commands.InsertItem:
                         response = InsertItem(data, connection, log);
                         break;
 
-                    case Command.RemoveItem:
+                    case Commands.RemoveItem:
                         response = RemoveItem(data, connection, log);
                         break;
 
-                    case Command.AddTags:
+                    case Commands.AddTags:
                         response = AddTags(data, connection, log);
                         break;
 
-                    case Command.UpdateQuantity:
+                    case Commands.UpdateQuantity:
                         response = UpdateQuantity(data, connection, log);
                         break;
 
-                    case Command.SetQuantity:
+                    case Commands.SetQuantity:
                         response = SetQuantity(data, connection, log);
                         break;
 
-                    case Command.ShowAllBoxes:
+                    case Commands.ShowAllBoxes:
                         response = ShowAllBoxes(data, connection, log);
                         break;
 
@@ -245,41 +233,55 @@ namespace FindyBot3000.AzureFunction
         public static string FindItem(dynamic jsonRequestData, SqlConnection connection, ILogger log)
         {
             string item = jsonRequestData;
-            var queryString = string.Format($"SELECT * FROM dbo.Items WHERE LOWER(Items.Name) LIKE '{item.ToLowerInvariant()}'");
 
-            using (SqlCommand command = new SqlCommand(queryString, connection))
+            if (TryFindItem(connection, log, item, out List<Item> items))
+            {
+                FindItemResponse response = new FindItemResponse
+                {
+                    Result = items
+                };
+
+                string jsonQueryResponse = response.ToJsonString();
+                log.LogInformation(jsonQueryResponse);
+
+                return jsonQueryResponse;
+            }
+
+            return (new FindItemResponse()).ToJsonString();
+        }
+
+        public static bool TryFindItem(SqlConnection conn, ILogger log, string item, out List<Item> items)
+        {
+            items = new List<Item>();
+
+            var queryString = $"SELECT * FROM dbo.Items WHERE LOWER(Items.Name) LIKE '{item.ToLowerInvariant()}'";
+
+            using (SqlCommand command = new SqlCommand(queryString, conn))
             {
                 SqlDataReader reader = command.ExecuteReader();
                 try
                 {
-                    List<object> jsonObjects = new List<object>();
                     while (reader.Read())
                     {
-                        jsonObjects.Add(
-                            new
+                        items.Add(
+                            new Item
                             {
                                 Name = (string)reader[Dbo.Items.Name],
                                 Quantity = (int)reader[Dbo.Items.Quantity],
                                 Row = (int)reader[Dbo.Items.Row],
-                                Col = (int)reader[Dbo.Items.Col]
+                                Col = (int)reader[Dbo.Items.Col],
+                                IsSmallBox = (bool)reader[Dbo.Items.IsSmallBox]
                             });
                     }
-
-                    var response = new
-                    {
-                        Command = Command.FindItem,
-                        Count = jsonObjects.Count,
-                        Result = jsonObjects
-                    };
-
-                    string jsonQueryResponse = JsonConvert.SerializeObject(response);
-                    log.LogInformation(jsonQueryResponse);
-
-                    return jsonQueryResponse;
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    log.LogInformation(ex.Message);
+                    return false;
                 }
                 finally
                 {
-                    // Always call Close when done reading.
                     reader.Close();
                 }
             }
@@ -333,7 +335,7 @@ ORDER BY t.TagsMatched DESC";
 
                     var response = new
                     {
-                        Command = Command.FindTags,
+                        Command = Commands.FindTags,
                         Count = jsonObjects.Count,
                         Tags = tags.Length,
                         Result = jsonObjects
@@ -388,11 +390,11 @@ ORDER BY t.TagsMatched DESC";
                     if (reader.HasRows)
                     {
                         // There will only be one object in this list
-                        List<object> jsonObjects = new List<object>();
+                        List<Item> jsonObjects = new List<Item>();
                         while (reader.Read())
                         {
                             jsonObjects.Add(
-                                new
+                                new Item
                                 {
                                     Name = (string)reader["Name"],
                                     Quantity = (int)reader["Quantity"],
@@ -403,7 +405,7 @@ ORDER BY t.TagsMatched DESC";
 
                         var response = new
                         {
-                            Command = Command.FindItem,
+                            Command = Commands.FindItem,
                             Count = jsonObjects.Count,
                             Result = jsonObjects
                         };
@@ -457,37 +459,20 @@ ORDER BY t.TagsMatched DESC";
                 return JsonConvert.SerializeObject(
                     new
                     {
-                        Command = Command.InsertItem,
+                        Command = Commands.InsertItem,
                         Success = false,
                         Message = $"No {(useSmallBox ? "Small" : "Large")} boxes left!"
                     });
             }
 
-            var sqlInsertString = string.Format($@"
-INSERT INTO dbo.Items([Name], [Quantity], [Row], [Col], [IsSmallBox], [DateCreated], [LastUpdated])
-VALUES (@param1, @param2, @param3, @param4, @param5, @param6, @param7)");
-
-            bool insertSucceeded = false;
-            using (SqlCommand sqlCommand = new SqlCommand())
-            {
-                sqlCommand.Connection = connection;
-                sqlCommand.CommandText = sqlInsertString;
-                sqlCommand.Parameters.AddWithValue("@param1", item);
-                sqlCommand.Parameters.AddWithValue("@param2", quantity);
-                sqlCommand.Parameters.AddWithValue("@param3", row);
-                sqlCommand.Parameters.AddWithValue("@param4", col);
-                sqlCommand.Parameters.AddWithValue("@param5", useSmallBox);
-                sqlCommand.Parameters.AddWithValue("@param6", DateTime.UtcNow);
-                sqlCommand.Parameters.AddWithValue("@param7", DateTime.UtcNow);
-                insertSucceeded = sqlCommand.ExecuteNonQuery() > 0;
-            }
+            bool insertSucceeded = TryInsertItem(item, quantity, row, col, useSmallBox, connection, log);
 
             if (!insertSucceeded)
             {
                 return JsonConvert.SerializeObject(
                     new
                     {
-                        Command = Command.InsertItem,
+                        Command = Commands.InsertItem,
                         Success = false,
                         Message = "Insert failed"
                     });
@@ -498,13 +483,45 @@ VALUES (@param1, @param2, @param3, @param4, @param5, @param6, @param7)");
 
             object insertResponse = new
             {
-                Command = Command.InsertItem,
+                Command = Commands.InsertItem,
                 Success = insertSucceeded && tagsAdded > 0,
                 Row = row,
                 Col = col
             };
 
             return JsonConvert.SerializeObject(insertResponse);
+        }
+
+        public static bool TryInsertItem(string name, int quantity, int row, int col, bool useSmallBox, SqlConnection conn, ILogger log)
+        {
+            var sqlInsertString = string.Format($@"
+INSERT INTO dbo.Items([Name], [Quantity], [Row], [Col], [IsSmallBox], [DateCreated], [LastUpdated])
+VALUES (@param1, @param2, @param3, @param4, @param5, @param6, @param7)");
+
+            try
+            {
+                bool insertSucceeded = false;
+                using (SqlCommand sqlCommand = new SqlCommand())
+                {
+                    sqlCommand.Connection = conn;
+                    sqlCommand.CommandText = sqlInsertString;
+                    sqlCommand.Parameters.AddWithValue("@param1", name);
+                    sqlCommand.Parameters.AddWithValue("@param2", quantity);
+                    sqlCommand.Parameters.AddWithValue("@param3", row);
+                    sqlCommand.Parameters.AddWithValue("@param4", col);
+                    sqlCommand.Parameters.AddWithValue("@param5", useSmallBox);
+                    sqlCommand.Parameters.AddWithValue("@param6", DateTime.UtcNow);
+                    sqlCommand.Parameters.AddWithValue("@param7", DateTime.UtcNow);
+                    insertSucceeded = sqlCommand.ExecuteNonQuery() > 0;
+                }
+
+                return insertSucceeded;
+            }
+            catch (Exception ex)
+            {
+                log.LogInformation(ex.Message);
+                return false;
+            }
         }
         
         public static string RemoveItem(dynamic jsonRequestData, SqlConnection connection, ILogger log)
@@ -520,7 +537,7 @@ DELETE FROM dbo.Items WHERE LOWER(Items.Name) LIKE '{itemLower}';";
 
                 object removeItemResponse = new
                 {
-                    Command = Command.RemoveItem,
+                    Command = Commands.RemoveItem,
                     Success = itemsRemoved > 0,
                     Quantity = itemsRemoved
                 };
@@ -551,15 +568,45 @@ DELETE FROM dbo.Items WHERE LOWER(Items.Name) LIKE '{itemLower}';";
             }
             else
             {
-                return JsonConvert.SerializeObject(new { Command = Command.AddTags, Success = false });
+                return JsonConvert.SerializeObject(new { Command = Commands.AddTags, Success = false });
             }
             
             string itemLower = item.ToLowerInvariant();
+
+            if (!ItemExists(item, connection, log))
+            {
+                var addTagsResponse = new
+                {
+                    Command = Commands.AddTags,
+                    Success = false,
+                    Message = "Item does not exist, cannot add tags"
+                };
+
+                string jsonQueryResponse = JsonConvert.SerializeObject(addTagsResponse);
+                log.LogInformation(jsonQueryResponse);
+
+                return jsonQueryResponse;
+            }
+            
+            int tagsAdded = InsertTags(connection, item, tags);
+
+            object addTagsResponse2 = new
+            {
+                Command = Commands.AddTags,
+                Success = tagsAdded > 0,
+                Count = tagsAdded
+            };
+
+            return JsonConvert.SerializeObject(addTagsResponse2);
+        }
+
+        public static bool ItemExists(string item, SqlConnection connection, ILogger log)
+        {
             string itemExistsQuery = $@"
 SELECT CASE WHEN EXISTS (
     SELECT *
     FROM dbo.Items
-    WHERE LOWER(Items.Name) LIKE '{itemLower}'
+    WHERE LOWER(Items.Name) LIKE '{item.ToLowerInvariant()}'
 )
 THEN CAST(1 AS BIT)
 ELSE CAST(0 AS BIT) END";
@@ -569,38 +616,17 @@ ELSE CAST(0 AS BIT) END";
                 SqlDataReader reader = command.ExecuteReader();
                 try
                 {
-                    if (!reader.HasRows)
-                    {
-                        var addTagsResponse = new
-                        {
-                            Command = Command.AddTags,
-                            Success = false,
-                            Message = "Item does not exist, cannot add tags"
-                        };
-
-                        string jsonQueryResponse = JsonConvert.SerializeObject(addTagsResponse);
-                        log.LogInformation(jsonQueryResponse);
-
-                        return jsonQueryResponse;
-                    }
+                    return reader.HasRows;
+                }
+                catch (Exception)
+                {
+                    return false;
                 }
                 finally
                 {
-                    // Always call Close when done reading.
                     reader.Close();
                 }
             }
-            
-            int tagsAdded = InsertTags(connection, item, tags);
-
-            object addTagsResponse2 = new
-            {
-                Command = Command.AddTags,
-                Success = tagsAdded > 0,
-                Count = tagsAdded
-            };
-
-            return JsonConvert.SerializeObject(addTagsResponse2);
         }
 
         public static string SetQuantity(dynamic jsonRequestData, SqlConnection connection, ILogger log)
@@ -673,7 +699,7 @@ WHERE LOWER(Items.Name) LIKE '{item.ToLowerInvariant()}'";
 
                         dynamic jsonResponse = new
                         {
-                            Command = Command.ShowAllBoxes,
+                            Command = Commands.ShowAllBoxes,
                             Count = coords.Length/2,
                             Coords = coords
                         };
@@ -694,7 +720,7 @@ WHERE LOWER(Items.Name) LIKE '{item.ToLowerInvariant()}'";
 
                         dynamic jsonResponse = new
                         {
-                            Command = Command.ShowAllBoxes,
+                            Command = Commands.ShowAllBoxes,
                             Count = coords.Count,
                             Coords = coords
                         };
@@ -704,7 +730,7 @@ WHERE LOWER(Items.Name) LIKE '{item.ToLowerInvariant()}'";
                 }
                 catch (Exception)
                 {
-                    return JsonConvert.SerializeObject(new { Command = Command.ShowAllBoxes, Success = false });
+                    return JsonConvert.SerializeObject(new { Command = Commands.ShowAllBoxes, Success = false });
                 }
                 finally
                 {
@@ -712,6 +738,91 @@ WHERE LOWER(Items.Name) LIKE '{item.ToLowerInvariant()}'";
                 }
             }
         }
+
+        // Formats:
+        // "<new item> with <old item> add tags <tag0 tag1 tag2 ...>
+        // "<new item> with tags <tag0 tag1 tag2 ...>
+        public static string BundleWith(dynamic jsonRequestData, SqlConnection connection, ILogger log)
+        {
+            string text = jsonRequestData["Info"];
+            int quantity = jsonRequestData["Quantity"];
+
+            if (text.Contains(" with tags "))
+            {
+                return BundleWithTags(text, quantity, connection, log);
+            }
+            else if (text.Contains(" with "))
+            {
+                return BundleWithItem(text, quantity, connection, log);
+            }
+            else
+            {
+                return JsonConvert.SerializeObject(new { Command = Commands.StoreWith, Success = false });
+            }
+        }
+
+        public static HashSet<string> GetTags(string item)
+        {
+            if (item == null) return new HashSet<string>();
+                
+            return new HashSet<string>(
+                item
+                .ToLowerInvariant()
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Select(a => a.Trim()));
+        }
+
+        public static string BundleWithItem(string text, int quantity, SqlConnection connection, ILogger log)
+        {
+            string newItem = string.Empty;
+            string existingItem = string.Empty;
+            HashSet<string> tags = new HashSet<string>();
+
+            if (text.Contains(" add tags "))
+            {
+                string[] itemsAndTags = text.Split(" add tags ", StringSplitOptions.RemoveEmptyEntries);
+                string[] newAndExistingItem = itemsAndTags[0].Split(" with ", StringSplitOptions.RemoveEmptyEntries);
+
+                newItem = newAndExistingItem[0].Trim();
+                existingItem = newAndExistingItem[1].Trim();
+
+                tags = GetTags(itemsAndTags[1]);
+            }
+            else
+            {
+                string[] newAndExistingItem = text.Split(" with ", StringSplitOptions.RemoveEmptyEntries);
+
+                newItem = newAndExistingItem[0].Trim();
+                existingItem = newAndExistingItem[1].Trim();
+                tags = GetTags(newItem);
+            }
+            
+            if (TryFindItem(connection, log, newItem, out List<Item> items))
+            {
+                if (items.Count == 1)
+                {
+                    Item item = items[0];
+                    if (TryInsertItem(newItem, quantity, item.Row.Value, item.Col.Value, item.IsSmallBox.Value, connection, log))
+                    {
+                        InsertTags(connection, newItem, tags);
+
+                        return FindItem(newItem, connection, log);
+                    }
+                }
+            }
+            else if (ItemExists(newItem, connection, log))
+            {
+                return FindItem(newItem, connection, log);
+            }
+
+            return (new FindItemResponse()).ToJsonString();  
+        }
+
+        public static string BundleWithTags(string text, int quantity, SqlConnection connection, ILogger log)
+        {
+            return "Nope";
+        }
+
 
         /* Build a SQL insert statement supporting multiple insert values, without duplicating any entries:
              MERGE INTO dbo.Tags AS Target

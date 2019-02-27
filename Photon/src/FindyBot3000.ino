@@ -213,6 +213,7 @@ const char* AddTags = "AddTags";
 const char* SetQuantity = "SetQuantity";
 const char* UpdateQuantity = "UpdateQuantity";
 const char* ShowAllBoxes = "ShowAllBoxes";
+const char* BundleWith = "BundleWith";
 
 // Processed on Particle Photon
 const char* SetBrightness = "SetBrightness";
@@ -235,7 +236,8 @@ const CommandHandler commands[] =
   { SetDisplay, setDisplay },
   { SetDebugging, setDebugging },
   { SetScrollText, setScrollText },
-  { ShowAllBoxes, showAllBoxes }
+  { ShowAllBoxes, showAllBoxes },
+  { BundleWith, bundleWith }
 };
 
 void googleAssistantEventHandler(const char* event, const char* data)
@@ -311,6 +313,11 @@ void showAllBoxes(const char *data)
   callAzureFunction(ShowAllBoxes, data);
 }
 
+void bundleWith(const char *data)
+{
+  callAzureFunction(BundleWith, data);
+}
+
 // Turn the LED matrix power supply relay on or off
 void setDisplay(const char *data)
 {
@@ -375,6 +382,7 @@ const ResponseHandler responseHandlers[] =
   { SetQuantity, setQuantityResponseHandler },
   { UpdateQuantity, updateQuantityResponseHandler },
   { ShowAllBoxes, showAllBoxesResponseHandler },
+  { BundleWith, bundleWithResponseHandler }
 };
 
 char msg[600];
@@ -515,11 +523,11 @@ void addTagsResponseHandler(JsonObject& json)
   Serial.println("addTagsResponseHandler");
 }
 
+// Modifying quantity triggers FindItem response handler
 void setQuantityResponseHandler(JsonObject& json)
 {
   Serial.println("setQuantityResponseHandler");
 }
-
 void updateQuantityResponseHandler(JsonObject& json)
 {
   Serial.println("updateQuantityResponseHandler");
@@ -545,6 +553,11 @@ void showAllBoxesResponseHandler(JsonObject& json)
   //Serial.println();
 
   matrix.show();
+}
+
+void bundleWithResponseHandler(JsonObject& json)
+{
+  Serial.println("bundleWithResponseHandler");
 }
 
 
