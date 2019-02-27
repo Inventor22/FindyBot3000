@@ -202,6 +202,10 @@ namespace FindyBot3000.AzureFunction
                         response = ShowAllBoxes(data, connection, log);
                         break;
 
+                    case Commands.BundleWith:
+                        response = BundleWith(data, connection, log);
+                        break;
+
                     default:
                         response = $"Command '{command}' not supported";
                         break;
