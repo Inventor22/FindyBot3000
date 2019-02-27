@@ -15,5 +15,6 @@ namespace FindyBot3000.AzureFunction
         public const string SetQuantity = "SetQuantity";
         public const string ShowAllBoxes = "ShowAllBoxes";
         public const string StoreWith = "StoreWith";
+        public const string BundleWith = "BundleWith";
     }
 }

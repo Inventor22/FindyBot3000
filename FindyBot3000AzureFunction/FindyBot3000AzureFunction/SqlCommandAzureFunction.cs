@@ -35,7 +35,7 @@ namespace FindyBot3000.AzureFunction
             public const string Tag = "Tag";
         }
 
-        public class Commands
+        public class Commando
         {
             public const string DateCreated = "DateCreated";
             public const string Command = "Command";

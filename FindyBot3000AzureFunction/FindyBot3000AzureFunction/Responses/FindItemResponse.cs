@@ -8,14 +8,7 @@ namespace FindyBot3000.AzureFunction
     public class FindItemResponse : ICommandCountResponse
     {
         public string Command { get { return Commands.FindItem; } }
-
-        public bool? Success { get; set; }
-
-        public bool ShouldSerializeSuccess()
-        {
-            return this.Success != null;
-        }
-
+        
         public int Count
         {
             get
