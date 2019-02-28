@@ -277,7 +277,7 @@ namespace FindyBot3000.AzureFunction
                                 IsSmallBox = (bool)reader[Dbo.Items.IsSmallBox]
                             });
                     }
-                    return true;
+                    return items.Count > 0;
                 }
                 catch (Exception ex)
                 {
@@ -317,11 +317,16 @@ ORDER BY t.TagsMatched DESC";
                 SqlDataReader reader = command.ExecuteReader();
                 try
                 {
+                    // To limit size of data returned.
                     bool includeName = false;
+                    int limit = 15;
+                    int i = 0;
 
                     List<object> jsonObjects = new List<object>();
                     while (reader.Read())
                     {
+                        if (i++ >= limit) break;
+
                         if (!includeName)
                         {
                             jsonObjects.Add(new int[] { (int)reader["Row"], (int)reader["Col"], (int)reader["TagsMatched"] });
@@ -340,9 +345,9 @@ ORDER BY t.TagsMatched DESC";
                     var response = new
                     {
                         Command = Commands.FindTags,
-                        Count = jsonObjects.Count,
+                        Count = Math.Min(jsonObjects.Count, 10),
                         Tags = tags.Length,
-                        Result = jsonObjects
+                        Result = jsonObjects.Take(10).ToList()
                     };
 
                     string jsonQueryResponse = JsonConvert.SerializeObject(response, new FloatFormatConverter());
@@ -801,7 +806,7 @@ WHERE LOWER(Items.Name) LIKE '{item.ToLowerInvariant()}'";
                 tags = GetTags(newItem);
             }
             
-            if (TryFindItem(connection, log, newItem, out List<Item> items))
+            if (!TryFindItem(connection, log, newItem, out List<Item> items))
             {
                 if (items.Count == 1)
                 {
