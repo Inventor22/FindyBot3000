@@ -15,109 +15,6 @@ using Microsoft.Extensions.Configuration;
 
 namespace FindyBot3000.AzureFunction
 {
-    // Sql Table column names
-    public class Dbo
-    {
-        public class Items
-        {
-            public const string Name = "Name";
-            public const string Quantity = "Quantity";
-            public const string Row = "Row";
-            public const string Col = "Col";
-            public const string IsSmallBox = "IsSmallBox";
-            public const string DateCreated = "DateCreated";
-            public const string LastUpdated = "LastUpdated";
-        }
-
-        public class Tags
-        {
-            public const string Name = "Name";
-            public const string Tag = "Tag";
-        }
-
-        public class Commando
-        {
-            public const string DateCreated = "DateCreated";
-            public const string Command = "Command";
-            public const string DataIn = "DataIn";
-            public const string DataOut = "DataOut";
-        }
-
-        public class HttpRequests
-        {
-            public const string HttpRequestBody = "HttpRequestBody";
-            public const string DateCreated = "DateCreated";
-        }
-    }
-
-    public class FindTagsResponse
-    {
-        public string Name { get; set; }
-        public int Quantity { get; set; }
-        public int Row { get; set; }
-        public int Col { get; set; }
-        public int TagsMatched { get; set; }
-        public float Confidence { get; set; }
-    }
-
-    // This begs for a stateful azure function...
-    public class MatrixModel
-    {
-        private const int TopRows = 8;
-        private const int TopCols = 16;
-        private const int BottomRows = 6;
-        private const int BottomCols = 8;
-
-        private bool[,] TopItems = new bool[TopRows, TopCols];
-        private bool[,] BottomItems = new bool[BottomRows, BottomCols];
-
-        public void AddItem(int row, int col)
-        {
-            if (row < 8)
-            {
-                this.TopItems[row, col] = true;
-            }
-            else if (row < 14)
-            {
-                this.BottomItems[row-8, col] = true;
-            }
-        }
-
-        public (int, int) GetNextAvailableBox(bool isSmallBox)
-        {
-            if (isSmallBox)
-            {
-                return this.GetBoxAndUpdate(TopItems, TopRows, TopCols);
-            }
-            else
-            {
-                (int row, int col) = this.GetBoxAndUpdate(BottomItems, BottomRows, BottomCols);
-
-                // 8 rows of small boxes on top, with 6 rows of big boxes below.
-                // Indexing for rows and columns start at top left.
-                row += 8;
-
-                return (row, col);
-            }
-        }
-
-        private (int, int) GetBoxAndUpdate(bool[,] matrix, int rows, int cols)
-        {
-            for (int row = 0; row < rows; row++)
-            {
-                for (int col = 0; col < cols; col++)
-                {
-                    if (matrix[row, col] == false)
-                    {
-                        matrix[row, col] = true;
-                        return (row, col);
-                    }
-                }
-            }
-            return (-1, -1);
-        }
-    }
-
     public static class SqlCommandAzureFunction
     {
         [FunctionName("SqlCommandAzureFunction")]
@@ -199,7 +96,7 @@ namespace FindyBot3000.AzureFunction
                         break;
 
                     case Commands.ShowAllBoxes:
-                        response = ShowAllBoxes(data, connection, log);
+                        response = ShowAllBoxes(connection, log);
                         break;
 
                     case Commands.BundleWith:
@@ -684,7 +581,7 @@ WHERE LOWER(Items.Name) LIKE '{item.ToLowerInvariant()}'";
             return FindItem(item, connection, log);
         }
 
-        public static string ShowAllBoxes(dynamic jsonRequestData, SqlConnection connection, ILogger log)
+        public static string ShowAllBoxes(SqlConnection connection, ILogger log)
         {
             string allBoxesQuery = $@"SELECT DISTINCT Row,Col FROM dbo.Items";
 
@@ -977,43 +874,6 @@ INSERT(Name, Tag) VALUES(Source.Name, Source.Tag);";
                 return item;
             }
             return info;
-        }
-    }
-
-    public class BoxType
-    {
-        public string Type { get; set; }
-        public bool IsSmallBox { get; set; }
-
-        public BoxType(string type, bool isSmallBox)
-        {
-            this.Type = type;
-            this.IsSmallBox = isSmallBox;
-        }
-    }
-
-    public class FloatFormatConverter : JsonConverter
-    {
-        public override bool CanConvert(Type objectType)
-        {
-            return (objectType == typeof(float));
-        }
-
-        public override void WriteJson(JsonWriter writer, object value,
-                                       JsonSerializer serializer)
-        {
-            writer.WriteRawValue(string.Format("{0:N2}", value));
-        }
-
-        public override bool CanRead
-        {
-            get { return false; }
-        }
-
-        public override object ReadJson(JsonReader reader, Type objectType,
-                                     object existingValue, JsonSerializer serializer)
-        {
-            throw new NotImplementedException();
         }
     }
 }
