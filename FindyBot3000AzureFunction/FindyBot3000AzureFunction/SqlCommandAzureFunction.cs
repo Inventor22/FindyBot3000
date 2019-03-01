@@ -34,7 +34,8 @@ namespace FindyBot3000.AzureFunction
             string sqldb_connection = config.GetConnectionString("sqldb_connection");
 
             log.LogInformation(sqldb_connection);
-            string response = string.Empty;
+
+            ICommandResponse response;
 
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             log.LogInformation(requestBody);
@@ -104,7 +105,7 @@ namespace FindyBot3000.AzureFunction
                         break;
 
                     default:
-                        response = $"Command '{command}' not supported";
+                        response = new UnknownCommandResponse(command);
                         break;
                 }
 
@@ -128,7 +129,7 @@ namespace FindyBot3000.AzureFunction
                 }
             }
 
-            return new OkObjectResult(response); // response
+            return new OkObjectResult(response.ToJsonString()); // response
         }
 
         public static FindItemResponse FindItem(dynamic jsonRequestData, SqlConnection connection, ILogger log)
@@ -217,7 +218,7 @@ namespace FindyBot3000.AzureFunction
             }
         }
 
-        public static string FindTags(dynamic jsonRequestData, SqlConnection connection, ILogger log, int maxResults = 10)
+        public static FindTagsResponse FindTags(dynamic jsonRequestData, SqlConnection connection, ILogger log, int maxResults = 10)
         {
             string words = jsonRequestData;
             // Take a string of words: "Green motor driver"
@@ -251,22 +252,15 @@ ORDER BY t.TagsMatched DESC";
                         coordsAndMatches.Add(new int[] { (int)reader["Row"], (int)reader["Col"], (int)reader["TagsMatched"] });
                     }
 
-                    var response = new
-                    {
-                        Command = Commands.FindTags,
-                        Count = Math.Min(coordsAndMatches.Count, 10),
-                        Tags = tags.Length,
-                        Result = coordsAndMatches.Take(maxResults).ToList()
-                    };
-
-                    string jsonQueryResponse = JsonConvert.SerializeObject(response);
-                    log.LogInformation(jsonQueryResponse);
-
-                    return jsonQueryResponse;
+                    return new FindTagsResponse(tags.Length, coordsAndMatches);
+                }
+                catch (Exception ex)
+                {
+                    log.LogInformation(ex.Message);
+                    return new FindTagsResponse(tags.Length, null);
                 }
                 finally
                 {
-                    // Always call Close when done reading.
                     reader.Close();
                 }
             }
@@ -282,7 +276,9 @@ ORDER BY t.TagsMatched DESC";
         // a. "<item name>"
         // b. "<item name> into a <small box|big box> with tags <tag0 tag1 tag2 ...>"
         // c. "<item name> with tags <tag0 tag1 tag2 ...> into a <small box|big box>"
-        public static string InsertItem(dynamic jsonRequestData, SqlConnection connection, ILogger log)
+        //
+        // Todo: Singularize item
+        public static ICommandResponse InsertItem(dynamic jsonRequestData, SqlConnection connection, ILogger log)
         {
             string info = jsonRequestData["Info"];
             int quantity = jsonRequestData["Quantity"];
@@ -301,7 +297,7 @@ ORDER BY t.TagsMatched DESC";
 
             if (findItemResponse.Count > 0)
             {
-
+                return findItemResponse;
             }
 
             /*
@@ -379,13 +375,7 @@ ORDER BY t.TagsMatched DESC";
 
             if (row == -1 && col == -1)
             {
-                return JsonConvert.SerializeObject(
-                    new
-                    {
-                        Command = Commands.InsertItem,
-                        Success = false,
-                        Message = $"No {(useSmallBox ? "Small" : "Large")} boxes left!"
-                    });
+                return new InsertItemResponse(false);
             }
 
             Item item = new Item(itemName, quantity, row, col, useSmallBox);
@@ -394,64 +384,16 @@ ORDER BY t.TagsMatched DESC";
 
             if (!insertSucceeded)
             {
-                return JsonConvert.SerializeObject(
-                    new
-                    {
-                        Command = Commands.InsertItem,
-                        Success = false,
-                        Message = "Insert failed"
-                    });
+                return new InsertItemResponse(false);
             }
 
             // Todo: Revert adding to dbo.Items if inserting to dbo.Items fails
             int tagsAdded = InsertTags(connection, itemName, tags);
-
-            object insertResponse = new
-            {
-                Command = Commands.InsertItem,
-                Success = insertSucceeded && tagsAdded > 0,
-                Row = row,
-                Col = col
-            };
-
-            return JsonConvert.SerializeObject(insertResponse);
-        }
-
-        // Done.
-        public static bool TryInsertItem(Item item, SqlConnection conn, ILogger log)
-        {
-            var sqlInsertString = @"
-INSERT INTO dbo.Items([Name], [Quantity], [Row], [Col], [IsSmallBox], [DateCreated], [LastUpdated])
-VALUES (@param1, @param2, @param3, @param4, @param5, @param6, @param7)";
-
-            try
-            {
-                bool insertSucceeded = false;
-                using (SqlCommand sqlCommand = new SqlCommand())
-                {
-                    sqlCommand.Connection = conn;
-                    sqlCommand.CommandText = sqlInsertString;
-                    sqlCommand.Parameters.AddWithValue("@param1", item.Name);
-                    sqlCommand.Parameters.AddWithValue("@param2", item.Quantity.Value);
-                    sqlCommand.Parameters.AddWithValue("@param3", item.Row.Value);
-                    sqlCommand.Parameters.AddWithValue("@param4", item.Col.Value);
-                    sqlCommand.Parameters.AddWithValue("@param5", item.IsSmallBox.Value);
-                    sqlCommand.Parameters.AddWithValue("@param6", DateTime.UtcNow);
-                    sqlCommand.Parameters.AddWithValue("@param7", DateTime.UtcNow);
-                    insertSucceeded = sqlCommand.ExecuteNonQuery() > 0;
-                }
-
-                return insertSucceeded;
-            }
-            catch (Exception ex)
-            {
-                log.LogInformation(ex.Message);
-                return false;
-            }
+            
+            return new InsertItemResponse(insertSucceeded && tagsAdded > 0, row, col);
         }
         
-        // Todo: Add RemoveItemResponse
-        public static string RemoveItem(dynamic jsonRequestData, SqlConnection connection, ILogger log)
+        public static CommandBooleanResponse RemoveItem(dynamic jsonRequestData, SqlConnection connection, ILogger log)
         {
             string itemLower = ((string)jsonRequestData).ToLowerInvariant();
             var queryString = $@"
@@ -461,22 +403,14 @@ DELETE FROM dbo.Items WHERE LOWER(Items.Name) LIKE '{itemLower}';";
             using (SqlCommand command = new SqlCommand(queryString, connection))
             {
                 int itemsRemoved = command.ExecuteNonQuery();
-
-                object removeItemResponse = new
-                {
-                    Command = Commands.RemoveItem,
-                    Success = itemsRemoved > 0,
-                    Quantity = itemsRemoved
-                };
-
-                return JsonConvert.SerializeObject(removeItemResponse);
+                
+                return new CommandBooleanResponse(Commands.RemoveItem, itemsRemoved > 0);
             }
         }
 
         // 1. Verify item exists
         // 2. Add tags
-        // Todo: AddTagsResponse
-        public static string AddTags(dynamic jsonRequestData, SqlConnection connection, ILogger log)
+        public static AddTagsResponse AddTags(dynamic jsonRequestData, SqlConnection connection, ILogger log)
         {
             string data = jsonRequestData;
             string item = string.Empty;
@@ -496,66 +430,19 @@ DELETE FROM dbo.Items WHERE LOWER(Items.Name) LIKE '{itemLower}';";
             }
             else
             {
-                return JsonConvert.SerializeObject(new { Command = Commands.AddTags, Success = false });
+                return new AddTagsResponse(false, -1);
             }
             
             string itemLower = item.ToLowerInvariant();
 
             if (!ItemExists(item, connection, log))
             {
-                var addTagsResponse = new
-                {
-                    Command = Commands.AddTags,
-                    Success = false,
-                    Message = "Item does not exist, cannot add tags"
-                };
-
-                string jsonQueryResponse = JsonConvert.SerializeObject(addTagsResponse);
-                log.LogInformation(jsonQueryResponse);
-
-                return jsonQueryResponse;
+                return new AddTagsResponse(false, -1);
             }
             
             int tagsAdded = InsertTags(connection, item, tags);
 
-            object addTagsResponse2 = new
-            {
-                Command = Commands.AddTags,
-                Success = tagsAdded > 0,
-                Count = tagsAdded
-            };
-
-            return JsonConvert.SerializeObject(addTagsResponse2);
-        }
-
-        // Done.
-        public static bool ItemExists(string itemName, SqlConnection connection, ILogger log)
-        {
-            string itemExistsQuery = $@"
-SELECT CASE WHEN EXISTS (
-    SELECT *
-    FROM dbo.Items
-    WHERE LOWER(Items.Name) LIKE '{itemName.ToLowerInvariant()}'
-)
-THEN CAST(1 AS BIT)
-ELSE CAST(0 AS BIT) END";
-
-            using (SqlCommand command = new SqlCommand(itemExistsQuery, connection))
-            {
-                SqlDataReader reader = command.ExecuteReader();
-                try
-                {
-                    return reader.HasRows;
-                }
-                catch (Exception)
-                {
-                    return false;
-                }
-                finally
-                {
-                    reader.Close();
-                }
-            }
+            return new AddTagsResponse(true, tagsAdded);
         }
 
         // Todo: Return Command.SetQuantity
@@ -610,8 +497,7 @@ WHERE LOWER(Items.Name) LIKE '{item.ToLowerInvariant()}'";
             return FindItem(item, connection, log);
         }
 
-        // Todo: ShowAllBoxesResponse
-        public static string ShowAllBoxes(SqlConnection connection, ILogger log)
+        public static ShowAllBoxesResponse ShowAllBoxes(SqlConnection connection, ILogger log)
         {
             string allBoxesQuery = $@"SELECT DISTINCT Row,Col FROM dbo.Items";
 
@@ -630,21 +516,14 @@ WHERE LOWER(Items.Name) LIKE '{item.ToLowerInvariant()}'";
                     }
 
                     string coords = sb.ToString();
-
-                    dynamic jsonResponse = new
-                    {
-                        Command = Commands.ShowAllBoxes,
-                        Count = coords.Length/2,
-                        Coords = coords
-                    };
-
-                    return JsonConvert.SerializeObject(jsonResponse);
+                    
+                    return new ShowAllBoxesResponse(coords.Length / 2, coords);
                 }
                 catch (Exception ex)
                 {
                     log.LogInformation(ex.Message);
 
-                    return JsonConvert.SerializeObject(new { Command = Commands.ShowAllBoxes, Count = -1 });
+                    return new ShowAllBoxesResponse();
                 }
                 finally
                 {
@@ -779,16 +658,66 @@ INSERT(Name, Tag) VALUES(Source.Name, Source.Tag);";
                 .Select(a => a.Trim()));
         }
 
-        public static void LogHttpRequestBody(SqlConnection connection, string requestBody)
+        // Done.
+        public static bool ItemExists(string itemName, SqlConnection connection, ILogger log)
         {
-            var httpRequestString = $"INSERT INTO dbo.HttpRequests ([HttpRequestBody], [DateCreated]) VALUES (@param1, @param2)";
-            using (SqlCommand sqlCommand = new SqlCommand())
+            string itemExistsQuery = $@"
+SELECT CASE WHEN EXISTS (
+    SELECT *
+    FROM dbo.Items
+    WHERE LOWER(Items.Name) LIKE '{itemName.ToLowerInvariant()}'
+)
+THEN CAST(1 AS BIT)
+ELSE CAST(0 AS BIT) END";
+
+            using (SqlCommand command = new SqlCommand(itemExistsQuery, connection))
             {
-                sqlCommand.Connection = connection;
-                sqlCommand.CommandText = httpRequestString;
-                sqlCommand.Parameters.AddWithValue("@param1", requestBody);
-                sqlCommand.Parameters.AddWithValue("@param2", DateTime.Now);
-                sqlCommand.ExecuteNonQuery();
+                SqlDataReader reader = command.ExecuteReader();
+                try
+                {
+                    return reader.HasRows;
+                }
+                catch (Exception)
+                {
+                    return false;
+                }
+                finally
+                {
+                    reader.Close();
+                }
+            }
+        }
+
+        // Done.
+        public static bool TryInsertItem(Item item, SqlConnection conn, ILogger log)
+        {
+            var sqlInsertString = @"
+INSERT INTO dbo.Items([Name], [Quantity], [Row], [Col], [IsSmallBox], [DateCreated], [LastUpdated])
+VALUES (@param1, @param2, @param3, @param4, @param5, @param6, @param7)";
+
+            try
+            {
+                bool insertSucceeded = false;
+                using (SqlCommand sqlCommand = new SqlCommand())
+                {
+                    sqlCommand.Connection = conn;
+                    sqlCommand.CommandText = sqlInsertString;
+                    sqlCommand.Parameters.AddWithValue("@param1", item.Name);
+                    sqlCommand.Parameters.AddWithValue("@param2", item.Quantity.Value);
+                    sqlCommand.Parameters.AddWithValue("@param3", item.Row.Value);
+                    sqlCommand.Parameters.AddWithValue("@param4", item.Col.Value);
+                    sqlCommand.Parameters.AddWithValue("@param5", item.IsSmallBox.Value);
+                    sqlCommand.Parameters.AddWithValue("@param6", DateTime.UtcNow);
+                    sqlCommand.Parameters.AddWithValue("@param7", DateTime.UtcNow);
+                    insertSucceeded = sqlCommand.ExecuteNonQuery() > 0;
+                }
+
+                return insertSucceeded;
+            }
+            catch (Exception ex)
+            {
+                log.LogInformation(ex.Message);
+                return false;
             }
         }
 
@@ -887,6 +816,19 @@ INSERT(Name, Tag) VALUES(Source.Name, Source.Tag);";
                 return item;
             }
             return info;
+        }
+
+        public static void LogHttpRequestBody(SqlConnection connection, string requestBody)
+        {
+            var httpRequestString = $"INSERT INTO dbo.HttpRequests ([HttpRequestBody], [DateCreated]) VALUES (@param1, @param2)";
+            using (SqlCommand sqlCommand = new SqlCommand())
+            {
+                sqlCommand.Connection = connection;
+                sqlCommand.CommandText = httpRequestString;
+                sqlCommand.Parameters.AddWithValue("@param1", requestBody);
+                sqlCommand.Parameters.AddWithValue("@param2", DateTime.Now);
+                sqlCommand.ExecuteNonQuery();
+            }
         }
     }
 }

@@ -5,17 +5,16 @@ namespace FindyBot3000.AzureFunction
     using Newtonsoft.Json;
     using System.Collections.Generic;
 
-    public class FindItemResponse : ICommandItemResponse
+    public class FindTagsResponse : ICommandResponse
     {
-        public FindItemResponse() { }
-
-        public FindItemResponse(List<Item> result)
+        public FindTagsResponse(int tagsCount, List<int[]> result)
         {
+            this.Tags = tagsCount;
             this.Result = result;
         }
 
-        public string Command { get { return Commands.FindItem; } }
-        
+        public string Command => Commands.FindTags;
+
         public int Count
         {
             get
@@ -24,8 +23,10 @@ namespace FindyBot3000.AzureFunction
             }
         }
 
-        public List<Item> Result { get; set; }
+        public int Tags { get; set; }
 
+        public List<int[]> Result { get; set; }
+        
         public string ToJsonString(bool indent = false)
         {
             return JsonConvert.SerializeObject(this, indent ? Formatting.Indented : Formatting.None);
