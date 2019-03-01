@@ -4,8 +4,10 @@ using System.Text;
 
 namespace FindyBot3000.AzureFunction
 {
-    public interface ICommandCountResponse
+    public interface ICommandItemResponse
     {
         int Count { get; }
+
+        List<Item> Result { get; set; }
     }
 }

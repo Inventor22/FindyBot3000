@@ -6,6 +6,19 @@ namespace FindyBot3000.AzureFunction
 
     public class Item
     {
+        public Item() { }
+
+        public Item(string name, int quantity, int row, int col, bool isSmallBox, DateTime dateCreated = default, DateTime lastUpdated = default)
+        {
+            this.Name = name;
+            this.Quantity = quantity;
+            this.Row = row;
+            this.Col = col;
+            this.IsSmallBox = isSmallBox;
+            this.DateCreated = dateCreated;
+            this.LastUpdated = lastUpdated;
+        }
+
         public string Name { get; set; } = null;
         public int? Quantity { get; set; } = null;
         public int? Row { get; set; } = null;

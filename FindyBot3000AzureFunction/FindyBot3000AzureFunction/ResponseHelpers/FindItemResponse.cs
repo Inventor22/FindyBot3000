@@ -5,15 +5,22 @@ namespace FindyBot3000.AzureFunction
     using Newtonsoft.Json;
     using System.Collections.Generic;
 
-    public class FindItemResponse : ICommandCountResponse
+    public class FindItemResponse : ICommandItemResponse
     {
+        public FindItemResponse() { }
+
+        public FindItemResponse(List<Item> result)
+        {
+            this.Result = result;
+        }
+
         public string Command { get { return Commands.FindItem; } }
         
         public int Count
         {
             get
             {
-                return this.Result != null ? this.Result.Count : 0;
+                return this.Result != null ? this.Result.Count : -1;
             }
         }
 
