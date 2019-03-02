@@ -221,10 +221,18 @@ namespace FindyBot3000.AzureFunction
         public static FindTagsResponse FindTags(dynamic jsonRequestData, SqlConnection connection, ILogger log, int maxResults = 10)
         {
             string words = jsonRequestData;
+            HashSet<string> tags = GetTagsFromString(words);
+
+            return FindTags(tags, connection, log, maxResults);
+        }
+
+        public static FindTagsResponse FindTags(HashSet<string> tags, SqlConnection connection, ILogger log, int maxResults = 10)
+        {
+            if (tags == null) return new FindTagsResponse(-1, null);
+
             // Take a string of words: "Green motor driver"
-            // Split it into an array of strings: string[] = { "Green", "motor", "driver" }
+            // Passed in is a HashSet of tags: HashSet<string> = { "Green", "motor", "driver" }
             // Format the words to be suited for the SQL-query: "'green','motor','driver'"
-            string[] tags = words.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
             string formattedTags = string.Join(",", tags.Select(tag => string.Format("'{0}'", tag.Trim().ToLowerInvariant())));
             log.LogInformation(formattedTags);
 
@@ -252,12 +260,12 @@ ORDER BY t.TagsMatched DESC";
                         coordsAndMatches.Add(new int[] { (int)reader["Row"], (int)reader["Col"], (int)reader["TagsMatched"] });
                     }
 
-                    return new FindTagsResponse(tags.Length, coordsAndMatches);
+                    return new FindTagsResponse(tags.Count, coordsAndMatches);
                 }
                 catch (Exception ex)
                 {
                     log.LogInformation(ex.Message);
-                    return new FindTagsResponse(tags.Length, null);
+                    return new FindTagsResponse(tags.Count, null);
                 }
                 finally
                 {
@@ -379,7 +387,12 @@ ORDER BY t.TagsMatched DESC";
             }
 
             Item item = new Item(itemName, quantity, row, col, useSmallBox);
-            
+
+            return InsertItemWithTags(item, tags, connection, log);
+        }
+
+        public static InsertItemResponse InsertItemWithTags(Item item, HashSet<string> tags, SqlConnection connection, ILogger log)
+        {
             bool insertSucceeded = TryInsertItem(item, connection, log);
 
             if (!insertSucceeded)
@@ -388,9 +401,9 @@ ORDER BY t.TagsMatched DESC";
             }
 
             // Todo: Revert adding to dbo.Items if inserting to dbo.Items fails
-            int tagsAdded = InsertTags(connection, itemName, tags);
-            
-            return new InsertItemResponse(insertSucceeded && tagsAdded > 0, row, col);
+            int tagsAdded = InsertTags(connection, item.Name, tags);
+
+            return new InsertItemResponse(insertSucceeded && tagsAdded > 0, item.Row.Value, item.Col.Value);
         }
         
         public static CommandBooleanResponse RemoveItem(dynamic jsonRequestData, SqlConnection connection, ILogger log)
@@ -535,7 +548,7 @@ WHERE LOWER(Items.Name) LIKE '{item.ToLowerInvariant()}'";
         // Formats:
         // "<new item> with <old item> add tags <tag0 tag1 tag2 ...>
         // "<new item> with tags <tag0 tag1 tag2 ...>
-        public static FindItemResponse BundleWith(dynamic jsonRequestData, SqlConnection connection, ILogger log)
+        public static ICommandResponse BundleWith(dynamic jsonRequestData, SqlConnection connection, ILogger log)
         {
             string info = jsonRequestData["Info"];
             int quantity = jsonRequestData["Quantity"];
@@ -568,7 +581,7 @@ WHERE LOWER(Items.Name) LIKE '{item.ToLowerInvariant()}'";
                 newItem = newAndExistingItem[0].Trim();
                 existingItem = newAndExistingItem[1].Trim();
 
-                tags = GetTagsFromItem(itemsAndTags[1]);
+                tags = GetTagsFromString(itemsAndTags[1]);
             }
             else
             {
@@ -576,7 +589,7 @@ WHERE LOWER(Items.Name) LIKE '{item.ToLowerInvariant()}'";
 
                 newItem = newAndExistingItem[0].Trim();
                 existingItem = newAndExistingItem[1].Trim();
-                tags = GetTagsFromItem(newItem);
+                tags = GetTagsFromString(newItem);
             }
 
             FindItemResponse foundItems = TryFindItem(existingItem, connection, log);
@@ -605,8 +618,81 @@ WHERE LOWER(Items.Name) LIKE '{item.ToLowerInvariant()}'";
             return new FindItemResponse(null);
         }
 
-        public static FindItemResponse BundleWithTags(string text, int quantity, SqlConnection connection, ILogger log)
+        public static ICommandResponse BundleWithTags(string text, int quantity, SqlConnection connection, ILogger log)
         {
+            string[] itemAndTags = text.Split(" with tags ", StringSplitOptions.RemoveEmptyEntries);
+
+            if (itemAndTags.Length != 2)
+            {
+                return new FindItemResponse(null);
+            }
+
+            string newItem = itemAndTags[0].Trim();
+            HashSet<string> tags = GetTagsFromString(itemAndTags[1]);
+
+            // Take a string of words: "Green motor driver"
+            // Passed in is a HashSet of tags: HashSet<string> = { "Green", "motor", "driver" }
+            // Format the words to be suited for the SQL-query: "'green','motor','driver'"
+            string formattedTags = string.Join(",", tags.Select(tag => string.Format("'{0}'", tag.Trim().ToLowerInvariant())));
+            log.LogInformation(formattedTags);
+
+            int maxResults = 3;
+
+            var queryString = $@"
+SELECT TOP {maxResults} i.Name, i.Quantity, i.Row, i.Col, i.IsSmallBox t.TagsMatched
+FROM dbo.Items i JOIN
+(
+    SELECT Name, COUNT(Name) TagsMatched
+    FROM dbo.Tags
+    WHERE Tag IN({formattedTags})
+    GROUP BY Name
+) t ON i.Name = t.Name
+ORDER BY t.TagsMatched DESC";
+
+            List<TaggedItem> items = new List<TaggedItem>();
+
+            using (SqlCommand command = new SqlCommand(queryString, connection))
+            {
+                SqlDataReader reader = command.ExecuteReader();
+                try
+                {
+                    while (reader.Read())
+                    {
+                        items.Add(new TaggedItem
+                        {
+                            Row = (int)reader["Row"],
+                            Col = (int)reader["Col"],
+                            TagsMatched = (int)reader["TagsMatched"],
+                            IsSmallBox = (bool)reader["IsSmallBox"]
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    log.LogInformation(ex.Message);
+                    return new FindItemResponse(null);
+                }
+                finally
+                {
+                    reader.Close();
+                }
+            }
+
+            IEnumerable<TaggedItem> fullyMatchedItems = items.Where(a => a.TagsMatched.Value == tags.Count);
+
+            if (fullyMatchedItems.Count() == 1)
+            {
+                TaggedItem existingItem = fullyMatchedItems.First();
+                Item insertItem = new Item(
+                    newItem, 
+                    quantity, 
+                    existingItem.Row.Value, 
+                    existingItem.Col.Value, 
+                    existingItem.IsSmallBox.Value);
+
+                return InsertItemWithTags(insertItem, tags, connection, log);
+            }
+
             return new FindItemResponse(null);
         }
 
@@ -647,7 +733,7 @@ INSERT(Name, Tag) VALUES(Source.Name, Source.Tag);";
             return tagsAdded;
         }
 
-        public static HashSet<string> GetTagsFromItem(string item)
+        public static HashSet<string> GetTagsFromString(string item)
         {
             if (item == null) return new HashSet<string>();
 
