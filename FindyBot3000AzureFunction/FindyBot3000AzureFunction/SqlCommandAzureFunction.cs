@@ -548,7 +548,7 @@ WHERE LOWER(Items.Name) LIKE '{item.ToLowerInvariant()}'";
         // Formats:
         // "<new item> with <old item> add tags <tag0 tag1 tag2 ...>
         // "<new item> with tags <tag0 tag1 tag2 ...>
-        public static ICommandResponse BundleWith(dynamic jsonRequestData, SqlConnection connection, ILogger log)
+        public static BundleWithResponse BundleWith(dynamic jsonRequestData, SqlConnection connection, ILogger log)
         {
             string info = jsonRequestData["Info"];
             int quantity = jsonRequestData["Quantity"];
@@ -563,11 +563,11 @@ WHERE LOWER(Items.Name) LIKE '{item.ToLowerInvariant()}'";
             }
             else
             {
-                return new FindItemResponse(null);
+                return new BundleWithResponse();
             }
         }
 
-        public static FindItemResponse BundleWithItem(string text, int quantity, SqlConnection connection, ILogger log)
+        public static BundleWithResponse BundleWithItem(string text, int quantity, SqlConnection connection, ILogger log)
         {
             string newItem = string.Empty;
             string existingItem = string.Empty;
@@ -611,20 +611,29 @@ WHERE LOWER(Items.Name) LIKE '{item.ToLowerInvariant()}'";
                 {
                     InsertTags(connection, newItem, tags);
 
-                    return FindItem(newItem, connection, log);
+                    FindItemResponse resp = FindItem(newItem, connection, log);
+
+                    if (resp.Count > 0)
+                    {
+                        return new BundleWithResponse(true, newItem, quantity, existingItem, item.Row, item.Col);
+                    }
+                    else
+                    {
+                        return new BundleWithResponse(false, newItem, quantity, existingItem);
+                    }
                 }
             }
 
-            return new FindItemResponse(null);
+            return new BundleWithResponse();
         }
 
-        public static ICommandResponse BundleWithTags(string text, int quantity, SqlConnection connection, ILogger log)
+        public static BundleWithResponse BundleWithTags(string text, int quantity, SqlConnection connection, ILogger log)
         {
             string[] itemAndTags = text.Split(" with tags ", StringSplitOptions.RemoveEmptyEntries);
 
             if (itemAndTags.Length != 2)
             {
-                return new FindItemResponse(null);
+                return new BundleWithResponse();
             }
 
             string newItem = itemAndTags[0].Trim();
@@ -670,7 +679,7 @@ ORDER BY t.TagsMatched DESC";
                 catch (Exception ex)
                 {
                     log.LogInformation(ex.Message);
-                    return new FindItemResponse(null);
+                    return new BundleWithResponse();
                 }
                 finally
                 {
@@ -690,10 +699,19 @@ ORDER BY t.TagsMatched DESC";
                     existingItem.Col.Value, 
                     existingItem.IsSmallBox.Value);
 
-                return InsertItemWithTags(insertItem, tags, connection, log);
+                InsertItemResponse resp = InsertItemWithTags(insertItem, tags, connection, log);
+
+                if (resp.Success)
+                {
+                    return new BundleWithResponse(true, newItem, quantity, existingItem.Name, insertItem.Row, insertItem.Col);
+                }
+                else
+                {
+                    return new BundleWithResponse(false, newItem, quantity, existingItem.Name);
+                }
             }
 
-            return new FindItemResponse(null);
+            return new BundleWithResponse();
         }
 
 

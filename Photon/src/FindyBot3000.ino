@@ -214,6 +214,7 @@ const char* SetQuantity = "SetQuantity";
 const char* UpdateQuantity = "UpdateQuantity";
 const char* ShowAllBoxes = "ShowAllBoxes";
 const char* BundleWith = "BundleWith";
+const char* UnknownCommand = "UnknownCommand";
 
 // Processed on Particle Photon
 const char* SetBrightness = "SetBrightness";
@@ -315,7 +316,7 @@ void showAllBoxes(const char *data)
 
 void bundleWith(const char *data)
 {
-  callAzureFunction(BundleWith, data);
+  callAzureFunction(BundleWith, data, true);
 }
 
 // Turn the LED matrix power supply relay on or off
@@ -382,7 +383,8 @@ const ResponseHandler responseHandlers[] =
   { SetQuantity, setQuantityResponseHandler },
   { UpdateQuantity, updateQuantityResponseHandler },
   { ShowAllBoxes, showAllBoxesResponseHandler },
-  { BundleWith, bundleWithResponseHandler }
+  { BundleWith, bundleWithResponseHandler },
+  { UnknownCommand, unknownCommandResponseHandler }
 };
 
 char msg[600];
@@ -470,77 +472,126 @@ void findTagsResponseHandler(JsonObject& json)
   int count = json["Count"];
   int numTags = json["Tags"];
 
-  if (count > 0)
-  {
-    JsonArray& items = json["Result"];
-
-    setDisplay(ON);
-    matrix.fillScreen(0);
-
-    for (int i = 0; i < count; i++)
-    {
-       //const char* name = items[i]["Name"];
-       JsonArray& info = items[i];
-       int row = info[0];
-       int col = info[1];
-       float confidence = ((float)info[2])/numTags;
-
-       //Serial.printlnf("Name: %s, Row: %d, Col: %d, Confidence: %f", name, row, col, confidence);
-       Serial.printlnf("Row: %d, Col: %d, Confidence: %f", row, col, confidence);
-
-       lightBox(row, col, getGreenRedValue(confidence));
-    }
-
-    matrix.show();
+  if (count <= 0) {
+    Serial.println("FindTags returned 0 items");
+    return;
   }
+
+  JsonArray& items = json["Result"];
+
+  setDisplay(ON);
+  matrix.fillScreen(0);
+
+  for (int i = 0; i < count; i++)
+  {
+     //const char* name = items[i]["Name"];
+     JsonArray& info = items[i];
+     int row = info[0];
+     int col = info[1];
+     float confidence = ((float)info[2])/numTags;
+
+     //Serial.printlnf("Name: %s, Row: %d, Col: %d, Confidence: %f", name, row, col, confidence);
+     Serial.printlnf("Row: %d, Col: %d, Confidence: %f", row, col, confidence);
+
+     lightBox(row, col, getGreenRedValue(confidence));
+  }
+
+  matrix.show();
 }
 
 void insertItemResponseHandler(JsonObject& json)
 {
   bool success = json["Success"];
+
+  if (!success) {
+    Serial.println("InsertItem failed");
+    return;
+  }
+
   int row = json["Row"];
   int col = json["Col"];
-
-  sRow = row;
-  sCol = col;
-  sColor = colors[1];
-  sSet = true;
 
   matrix.fillScreen(0);
   lightBox(row, col, colors[1]);
   matrix.show();
 
-  Serial.printlnf("row: %d, col: %d, success: %s", row, col, success ? "true" : "false");
+  Serial.printlnf("row: %d, col: %d", row, col);
 }
 
 void removeItemResponseHandler(JsonObject& json)
 {
   Serial.println("removeItemResponseHandler");
+
+  if (!json["Success"]) {
+    Serial.println("RemoveItem failed");
+    return;
+  }
 }
 
 void addTagsResponseHandler(JsonObject& json)
 {
   Serial.println("addTagsResponseHandler");
+
+  if (!json["Success"]) {
+    Serial.println("AddTags failed");
+    return;
+  }
 }
 
 // Modifying quantity triggers FindItem response handler
 void setQuantityResponseHandler(JsonObject& json)
 {
   Serial.println("setQuantityResponseHandler");
+
+  if (!json["Success"]) {
+    Serial.println("SetQuantity failed");
+    return;
+  }
+
+  JsonObject& result = json["Result"][0];
+  int row = result["Row"];
+  int col = result["Col"];
+
+  matrix.fillScreen(0);
+  lightBox(row, col, colors[1]);
+  matrix.show();
+
+  Serial.printlnf("row: %d, col: %d", row, col);
 }
+
 void updateQuantityResponseHandler(JsonObject& json)
 {
   Serial.println("updateQuantityResponseHandler");
+
+  if (!json["Success"]) {
+    Serial.println("UpdateQuantity failed");
+    return;
+  }
+
+  JsonObject& result = json["Result"][0];
+  int row = result["Row"];
+  int col = result["Col"];
+
+  matrix.fillScreen(0);
+  lightBox(row, col, colors[1]);
+  matrix.show();
+
+  Serial.printlnf("row: %d, col: %d", row, col);
 }
 
 void showAllBoxesResponseHandler(JsonObject& json)
 {
   Serial.println("showAllBoxesResponseHandler");
 
-  const char* cmd = json["Command"];
   int count = json["Count"];
-  const char* coordsJson = json["Coords"];
 
+  if (count == 0)
+  {
+    Serial.println("ShowAllBoxes returned 0 entries");
+    return;
+  }
+
+  const char* coordsJson = json["Coords"];
   matrix.fillScreen(0);
 
   for (int i = 0; i < count*2; i += 2)
@@ -558,8 +609,29 @@ void showAllBoxesResponseHandler(JsonObject& json)
 void bundleWithResponseHandler(JsonObject& json)
 {
   Serial.println("bundleWithResponseHandler");
+
+  if (!json["Success"]) {
+    Serial.println("UpdateQuantity failed");
+    return;
+  }
+
+  JsonObject& result = json["Result"][0];
+  int row = result["Row"];
+  int col = result["Col"];
+
+  matrix.fillScreen(0);
+  lightBox(row, col, colors[1]);
+  matrix.show();
+
+  Serial.printlnf("row: %d, col: %d", row, col);
 }
 
+void unknownCommandResponseHandler(JsonObject& json)
+{
+  Serial.println("unknownCommandResponseHandler");
+  const char* unknownCmd = json["Command"];
+  Serial.println(unknownCmd);
+}
 
 /* =============== HELPER FUNCTIONS =============== */
 
@@ -571,12 +643,14 @@ void lightBox(int row, int col, uint16_t color)
   int ledCount;
   int ledOffset;
 
-  if (row < 8) {
+  if (row < 8 && col < 16) {
     ledCount = boxLedWidthByColumnTop[col];
     ledOffset = boxLedOffsetByColumnTop[col];
-  } else {
+  } else if (row < 16 && col < 8) {
     ledCount = boxLedWidthByColumnBottom[col];
     ledOffset = boxLedOffsetByColumnBottom[col];
+  } else {
+    Serial.printlnf("Invalid. Row: %d, Col: %d\n", row, col);
   }
 
   //Serial.printlnf("row: %d, col: %d, count: %d, offset: %d", row, col, ledCount, ledOffset);
