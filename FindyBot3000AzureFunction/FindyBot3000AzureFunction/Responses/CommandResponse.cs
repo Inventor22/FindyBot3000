@@ -7,6 +7,7 @@ namespace FindyBot3000.AzureFunction
 
     public abstract class CommandResponse : ICommandResponse
     {
+        [JsonProperty(Order = -2)]
         public string Command { get; protected set; }
 
         public string ToJsonString(bool indent = false)
