@@ -615,15 +615,18 @@ void bundleWithResponseHandler(JsonObject& json)
     return;
   }
 
-  JsonObject& result = json["Result"][0];
-  int row = result["Row"];
-  int col = result["Col"];
+  const char* newItem = json["NewItem"];
+  int row = json["Row"];
+  int col = json["Col"];
+  int quantity = json["Quantity"];
+
+  const char* existingItem = json["ExistingItem"];
 
   matrix.fillScreen(0);
   lightBox(row, col, colors[1]);
   matrix.show();
 
-  Serial.printlnf("row: %d, col: %d", row, col);
+  Serial.printlnf("NewItem: %s, row: %d, col: %d, quantity: %d, ExistingItem: %s", newItem, row, col, quantity, existingItem);
 }
 
 void unknownCommandResponseHandler(JsonObject& json)
