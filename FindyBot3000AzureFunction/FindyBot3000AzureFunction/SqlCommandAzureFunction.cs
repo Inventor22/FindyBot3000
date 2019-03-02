@@ -406,9 +406,18 @@ ORDER BY t.TagsMatched DESC";
             return new InsertItemResponse(insertSucceeded && tagsAdded > 0, item.Row.Value, item.Col.Value);
         }
         
-        public static CommandBooleanResponse RemoveItem(dynamic jsonRequestData, SqlConnection connection, ILogger log)
+        public static RemoveItemResponse RemoveItem(dynamic jsonRequestData, SqlConnection connection, ILogger log)
         {
-            string itemLower = ((string)jsonRequestData).ToLowerInvariant();
+            string item = (string)jsonRequestData;
+            string itemLower = item.ToLowerInvariant();
+
+            FindItemResponse resp = TryFindItem(itemLower, connection, log);
+
+            if (resp.Count == 0)
+            {
+                return new RemoveItemResponse(false, item);
+            }
+
             var queryString = $@"
 DELETE FROM dbo.Tags  WHERE LOWER(Tags.Name)  LIKE '{itemLower}';
 DELETE FROM dbo.Items WHERE LOWER(Items.Name) LIKE '{itemLower}';";
@@ -417,7 +426,15 @@ DELETE FROM dbo.Items WHERE LOWER(Items.Name) LIKE '{itemLower}';";
             {
                 int itemsRemoved = command.ExecuteNonQuery();
                 
-                return new CommandBooleanResponse(Commands.RemoveItem, itemsRemoved > 0);
+                if (itemsRemoved > 0)
+                {
+                    Item i = resp.Result.First();
+                    return new RemoveItemResponse(itemsRemoved > 0, item, i.Row, i.Col);
+                }
+                else
+                {
+                    return new RemoveItemResponse(false, item);
+                }
             }
         }
 
@@ -637,18 +654,18 @@ WHERE LOWER(Items.Name) LIKE '{item.ToLowerInvariant()}'";
             }
 
             string newItem = itemAndTags[0].Trim();
-            HashSet<string> tags = GetTagsFromString(itemAndTags[1]);
+            HashSet<string> existingItemTags = GetTagsFromString(itemAndTags[1]);
 
             // Take a string of words: "Green motor driver"
             // Passed in is a HashSet of tags: HashSet<string> = { "Green", "motor", "driver" }
             // Format the words to be suited for the SQL-query: "'green','motor','driver'"
-            string formattedTags = string.Join(",", tags.Select(tag => string.Format("'{0}'", tag.Trim().ToLowerInvariant())));
+            string formattedTags = string.Join(",", existingItemTags.Select(tag => string.Format("'{0}'", tag.Trim().ToLowerInvariant())));
             log.LogInformation(formattedTags);
 
             int maxResults = 3;
 
             var queryString = $@"
-SELECT TOP {maxResults} i.Name, i.Quantity, i.Row, i.Col, i.IsSmallBox t.TagsMatched
+SELECT TOP (@param1) i.Name, i.Quantity, i.Row, i.Col, i.IsSmallBox, t.TagsMatched
 FROM dbo.Items i JOIN
 (
     SELECT Name, COUNT(Name) TagsMatched
@@ -660,8 +677,12 @@ ORDER BY t.TagsMatched DESC";
 
             List<TaggedItem> items = new List<TaggedItem>();
 
-            using (SqlCommand command = new SqlCommand(queryString, connection))
+            using (SqlCommand command = new SqlCommand())
             {
+                command.Connection = connection;
+                command.CommandText = queryString;
+                command.Parameters.AddWithValue("@param1", maxResults);
+
                 SqlDataReader reader = command.ExecuteReader();
                 try
                 {
@@ -669,6 +690,7 @@ ORDER BY t.TagsMatched DESC";
                     {
                         items.Add(new TaggedItem
                         {
+                            Name = (string)reader["Name"],
                             Row = (int)reader["Row"],
                             Col = (int)reader["Col"],
                             TagsMatched = (int)reader["TagsMatched"],
@@ -687,7 +709,7 @@ ORDER BY t.TagsMatched DESC";
                 }
             }
 
-            IEnumerable<TaggedItem> fullyMatchedItems = items.Where(a => a.TagsMatched.Value == tags.Count);
+            IEnumerable<TaggedItem> fullyMatchedItems = items.Where(a => a.TagsMatched.Value == existingItemTags.Count);
 
             if (fullyMatchedItems.Count() == 1)
             {
@@ -699,7 +721,9 @@ ORDER BY t.TagsMatched DESC";
                     existingItem.Col.Value, 
                     existingItem.IsSmallBox.Value);
 
-                InsertItemResponse resp = InsertItemWithTags(insertItem, tags, connection, log);
+                HashSet<string> newItemTags = GetTagsFromString(newItem);
+
+                InsertItemResponse resp = InsertItemWithTags(insertItem, newItemTags, connection, log);
 
                 if (resp.Success)
                 {
