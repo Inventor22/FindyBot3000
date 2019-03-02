@@ -14,8 +14,8 @@ namespace FindyBot3000.AzureFunction
 
         public FindItemResponse(List<Item> result)
         {
-            this.Result = result;
             this.Command = Commands.FindItem;
+            this.Result = result;
         }
                 
         public int Count
