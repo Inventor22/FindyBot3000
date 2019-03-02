@@ -8,7 +8,18 @@ namespace FindyBot3000.AzureFunction
     {
         public Item() { }
 
-        public Item(string name, int quantity, int row, int col, bool isSmallBox, DateTime dateCreated = default, DateTime lastUpdated = default)
+        public Item(string name, int quantity, int row, int col, bool isSmallBox)
+        {
+            this.Name = name;
+            this.Quantity = quantity;
+            this.Row = row;
+            this.Col = col;
+            this.IsSmallBox = isSmallBox;
+            this.DateCreated = DateTime.Now;
+            this.LastUpdated = DateTime.Now;
+        }
+
+        public Item(string name, int quantity, int row, int col, bool isSmallBox, DateTime dateCreated, DateTime lastUpdated)
         {
             this.Name = name;
             this.Quantity = quantity;
