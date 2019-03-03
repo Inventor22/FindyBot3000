@@ -32,5 +32,30 @@ namespace FindyBot3000.AzureFunction
         public int? Row { get; set; }
          
         public int? Col { get; set; }
+
+        public bool ShouldSerializeNewItem()
+        {
+            return this.NewItem != null;
+        }
+
+        public bool ShouldSerializeQuantity()
+        {
+            return this.Quantity != null;
+        }
+
+        public bool ShouldSerializeExistingItem()
+        {
+            return this.ExistingItem != null;
+        }
+
+        public bool ShouldSerializeRow()
+        {
+            return this.Row != null;
+        }
+
+        public bool ShouldSerializeCol()
+        {
+            return this.Col != null;
+        }
     }
 }

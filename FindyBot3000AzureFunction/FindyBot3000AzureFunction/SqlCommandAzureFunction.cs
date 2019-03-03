@@ -141,9 +141,9 @@ namespace FindyBot3000.AzureFunction
 
             List<Item> items = new List<Item>();
 
-            var queryString = $"SELECT Name,Quantity,Row,Col FROM dbo.Items WHERE Items.NameKey LIKE '@param1'";
+            var queryString = $"SELECT Name,Quantity,Row,Col FROM dbo.Items WHERE Items.NameKey LIKE @param1";
 
-            using (SqlCommand command = new SqlCommand(queryString, connection))
+            using (SqlCommand command = new SqlCommand())
             {
                 command.Connection = connection;
                 command.CommandText = queryString;
@@ -191,7 +191,7 @@ namespace FindyBot3000.AzureFunction
 
             List<Item> items = new List<Item>();
 
-            var queryString = $"SELECT * FROM dbo.Items WHERE Items.NameKey LIKE '@param1'";
+            var queryString = $"SELECT * FROM dbo.Items WHERE Items.NameKey LIKE @param1";
 
             using (SqlCommand command = new SqlCommand())
             {
@@ -245,8 +245,8 @@ namespace FindyBot3000.AzureFunction
             // Take a string of words: "Green motor driver"
             // Extract a HashSet of tags: HashSet<string> = { "Green", "motor", "driver" }
             // Format as params for SQL query, to defend against SQL injection attacks:
-            //     "'@param2','@param3','@param4'"
-            string paramList = string.Join(",", tagSet.Select((tag, index) => $"'@param{index + 2}'"));
+            //     "@param2,@param3,@param4"
+            string paramList = string.Join(",", tagSet.Select((_, index) => $"@param{index + 2}"));
             log.LogInformation(paramList);
 
             var queryString = $@"
@@ -375,7 +375,7 @@ ORDER BY t.TagsMatched DESC";
             // Todo: Revert adding to dbo.Items if inserting to dbo.Items fails
             int tagsAdded = InsertTags(connection, item.Name, tags);
 
-            return new InsertItemResponse(insertSucceeded && tagsAdded > 0, item.Row.Value, item.Col.Value);
+            return new InsertItemResponse(insertSucceeded && tagsAdded > 0, item.Row.Value, item.Col.Value, item.Name);
         }
         
         public static RemoveItemResponse RemoveItem(dynamic jsonRequestData, SqlConnection connection, ILogger log)
@@ -390,8 +390,8 @@ ORDER BY t.TagsMatched DESC";
             }
 
             var queryString = $@"
-DELETE FROM dbo.Tags  WHERE Tags.NameKey  LIKE '@param1';
-DELETE FROM dbo.Items WHERE Items.NameKey LIKE '@param1';";
+DELETE FROM dbo.Tags  WHERE Tags.NameKey  LIKE @param1;
+DELETE FROM dbo.Items WHERE Items.NameKey LIKE @param1;";
 
             using (SqlCommand command = new SqlCommand())
             {
@@ -459,7 +459,7 @@ DELETE FROM dbo.Items WHERE Items.NameKey LIKE '@param1';";
             var setQuantityQuery = $@"
 UPDATE dbo.Items
 SET Items.Quantity = @param1
-WHERE Items.NameKey LIKE '@param2'";
+WHERE Items.NameKey LIKE @param2";
 
             using (SqlCommand command = new SqlCommand())
             {
@@ -493,7 +493,7 @@ WHERE Items.NameKey LIKE '@param2'";
             var updateQuantityQuery = $@"
 UPDATE dbo.Items
 SET Items.Quantity = Items.Quantity + @param1
-WHERE Items.NameKey LIKE '@param2'";
+WHERE Items.NameKey LIKE @param2";
 
             using (SqlCommand command = new SqlCommand())
             {
@@ -644,8 +644,8 @@ WHERE Items.NameKey LIKE '@param2'";
             // Take a string of words: "Green motor driver"
             // Extract a HashSet of tags: HashSet<string> = { "Green", "motor", "driver" }
             // Format as params for SQL query, to defend against SQL injection attacks:
-            //     "'@param2','@param3','@param4'"
-            string paramList = string.Join(",", existingItemTags.Select((tag, index) => $"'@param{index+2}'"));
+            //     "@param2,@param3,@param4"
+            string paramList = string.Join(",", existingItemTags.Select((tag, index) => $"@param{index+2}"));
             log.LogInformation(paramList);
 
             int maxResults = 3;
@@ -745,7 +745,7 @@ ORDER BY t.TagsMatched DESC";
         {
             string insertTagsCommand = $@"
 MERGE INTO dbo.Tags AS Target
-USING(VALUES {string.Join(",", tagSet.Select((_, index) => $"(@param1, @param{index + 2})"))}) AS Source (Name, Tag)
+USING(VALUES {string.Join(",", tagSet.Select((_, index) => $"(@param1, @param{index + 2})"))}) AS Source (NameKey, Tag)
 ON Target.NameKey = Source.NameKey AND Target.Tag = Source.Tag
 WHEN NOT MATCHED BY Target THEN
 INSERT(NameKey, Tag) VALUES(Source.NameKey, Source.Tag);";
@@ -755,7 +755,7 @@ INSERT(NameKey, Tag) VALUES(Source.NameKey, Source.Tag);";
             {
                 sqlCommand.Connection = connection;
                 sqlCommand.CommandText = insertTagsCommand;
-                sqlCommand.Parameters.AddWithValue("@param1", item);
+                sqlCommand.Parameters.AddWithValue("@param1", QueryHelper.Instance.SingularizeAndLower(item));
                 int i = 2;
                 foreach (string tag in tagSet)
                 {
@@ -776,7 +776,7 @@ INSERT(NameKey, Tag) VALUES(Source.NameKey, Source.Tag);";
 SELECT CASE WHEN EXISTS (
     SELECT *
     FROM dbo.Items
-    WHERE Items.NameKey LIKE '@param1'
+    WHERE Items.NameKey LIKE @param1
 )
 THEN CAST(1 AS BIT)
 ELSE CAST(0 AS BIT) END";
