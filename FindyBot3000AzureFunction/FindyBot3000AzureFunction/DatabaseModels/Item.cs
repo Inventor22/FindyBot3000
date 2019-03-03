@@ -2,6 +2,7 @@
 
 namespace FindyBot3000.AzureFunction
 {
+    using Pluralize.NET.Core;
     using System;
 
     public class Item
@@ -37,6 +38,19 @@ namespace FindyBot3000.AzureFunction
         public bool? IsSmallBox { get; set; } = null;
         public DateTime? DateCreated { get; set; } = null;
         public DateTime? LastUpdated { get; set; } = null;
+
+        // NameKey is used in SQL database as the primary key for dbo.Items
+        // It is the lower-case, singularized version of the Name
+        // Ex: Name = "Green LEDs", NameKey = "green led"
+        public string NameKey
+        {
+            get
+            {
+                return string.IsNullOrEmpty(this.Name)
+                    ? null
+                    : QueryHelper.Instance.SingularizeAndLower(this.Name);
+            }
+        }
 
         /* 'ShouldSerialize' is used by Newtonsoft.Json to determine whether to serialize a property.
          * Using my nullables method, any combination of properties may be initialized when building the object for JSON serialization.
@@ -87,6 +101,11 @@ namespace FindyBot3000.AzureFunction
         public bool ShouldSerializeLastUpdated()
         {
             return this.LastUpdated != null;
+        }
+
+        public bool ShouldSerializeSingularizedName()
+        {
+            return this.Name != null;
         }
     }
 }

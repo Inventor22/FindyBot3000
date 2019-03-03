@@ -18,6 +18,8 @@ namespace FindyBot3000.AzureFunction
 {
     public static class SqlCommandAzureFunction
     {
+        public static Pluralizer p = new Pluralizer();
+
         [FunctionName("SqlCommandAzureFunction")]
         public static async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)] HttpRequest req,
@@ -135,17 +137,17 @@ namespace FindyBot3000.AzureFunction
         {
             string item = jsonRequestData;
 
-            string singularizedItem;
+            string nameKey = QueryHelper.Instance.SingularizeAndLower(item);
 
             List<Item> items = new List<Item>();
 
-            var queryString = $"SELECT Name,Quantity,Row,Col FROM dbo.Items WHERE LOWER(Items.Name) LIKE '@param1'";
+            var queryString = $"SELECT Name,Quantity,Row,Col FROM dbo.Items WHERE Items.NameKey LIKE '@param1'";
 
             using (SqlCommand command = new SqlCommand(queryString, connection))
             {
                 command.Connection = connection;
                 command.CommandText = queryString;
-                command.Parameters.AddWithValue("@param1", item.ToLowerInvariant());
+                command.Parameters.AddWithValue("@param1", nameKey);
 
                 SqlDataReader reader = command.ExecuteReader();
                 try
@@ -185,12 +187,18 @@ namespace FindyBot3000.AzureFunction
         // Done. May be removed.
         public static FindItemResponse TryFindItem(string item, SqlConnection conn, ILogger log)
         {
+            string singularizedItem = QueryHelper.Instance.SingularizeAndLower(item);
+
             List<Item> items = new List<Item>();
 
-            var queryString = $"SELECT * FROM dbo.Items WHERE LOWER(Items.Name) LIKE '{item.ToLowerInvariant()}'";
+            var queryString = $"SELECT * FROM dbo.Items WHERE Items.NameKey LIKE '@param1'";
 
-            using (SqlCommand command = new SqlCommand(queryString, conn))
+            using (SqlCommand command = new SqlCommand())
             {
+                command.Connection = conn;
+                command.CommandText = queryString;
+                command.Parameters.AddWithValue("@param1", singularizedItem);
+
                 SqlDataReader reader = command.ExecuteReader();
                 try
                 {
@@ -226,31 +234,30 @@ namespace FindyBot3000.AzureFunction
         public static FindTagsResponse FindTags(dynamic jsonRequestData, SqlConnection connection, ILogger log, int maxResults = 10)
         {
             string words = jsonRequestData;
-            HashSet<string> tags = GetTagsFromString(words);
 
-            return FindTags(tags, connection, log, maxResults);
+            return FindTags(new TagSet(words), connection, log, maxResults);
         }
 
-        public static FindTagsResponse FindTags(HashSet<string> tags, SqlConnection connection, ILogger log, int maxResults = 10)
+        public static FindTagsResponse FindTags(TagSet tagSet, SqlConnection connection, ILogger log, int maxResults = 10)
         {
-            if (tags == null) return new FindTagsResponse(-1, null);
+            if (tagSet.Count == 0) return new FindTagsResponse(-1, null);
 
             // Take a string of words: "Green motor driver"
             // Extract a HashSet of tags: HashSet<string> = { "Green", "motor", "driver" }
             // Format as params for SQL query, to defend against SQL injection attacks:
             //     "'@param2','@param3','@param4'"
-            string paramList = string.Join(",", tags.Select((tag, index) => $"'@param{index + 2}'"));
+            string paramList = string.Join(",", tagSet.Select((tag, index) => $"'@param{index + 2}'"));
             log.LogInformation(paramList);
 
             var queryString = $@"
-SELECT i.Name, i.Quantity, i.Row, i.Col, t.TagsMatched
+SELECT i.NameKey, i.Name, i.Quantity, i.Row, i.Col, t.TagsMatched
 FROM dbo.Items i JOIN
 (
-    SELECT Name, COUNT(Name) TagsMatched
+    SELECT NameKey, COUNT(NameKey) TagsMatched
     FROM dbo.Tags
     WHERE Tag IN({paramList})
-    GROUP BY Name
-) t ON i.Name = t.Name
+    GROUP BY NameKey
+) t ON i.NameKey = t.NameKey
 ORDER BY t.TagsMatched DESC";
 
             using (SqlCommand command = new SqlCommand())
@@ -260,7 +267,7 @@ ORDER BY t.TagsMatched DESC";
                 command.Parameters.AddWithValue("@param1", maxResults);
 
                 int index = 2;
-                foreach (string tag in tags)
+                foreach (string tag in tagSet)
                 {
                     command.Parameters.AddWithValue($"@param{index++}", tag);
                 }
@@ -276,12 +283,12 @@ ORDER BY t.TagsMatched DESC";
                         coordsAndMatches.Add(new int[] { (int)reader["Row"], (int)reader["Col"], (int)reader["TagsMatched"] });
                     }
 
-                    return new FindTagsResponse(tags.Count, coordsAndMatches);
+                    return new FindTagsResponse(tagSet.Count, coordsAndMatches);
                 }
                 catch (Exception ex)
                 {
                     log.LogInformation(ex.Message);
-                    return new FindTagsResponse(tags.Count, null);
+                    return new FindTagsResponse(tagSet.Count, null);
                 }
                 finally
                 {
@@ -310,12 +317,10 @@ ORDER BY t.TagsMatched DESC";
             string infoLower = info.ToLowerInvariant();
 
             bool hasBox = TryGetBoxInfo(infoLower, out int boxIndex, out string boxSearch, out bool useSmallBox);
-            bool hasTags = TryGetTagsInfo(infoLower, boxIndex, out int tagsIndex, out HashSet<string> tags);
+            bool hasTags = TryGetTagsInfo(infoLower, boxIndex, out int tagsIndex, out TagSet tagSet);
             string itemName = GetItemInfo(info, hasBox, hasTags, boxIndex, tagsIndex);
 
-            string itemLower = itemName.ToLowerInvariant();
-
-            tags.UnionWith(itemLower.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Select(a => a.Trim()));
+            tagSet.ParseAndUnionWith(itemName);
 
             FindItemResponse findItemResponse = FindItem(itemName, connection, log);
 
@@ -355,10 +360,10 @@ ORDER BY t.TagsMatched DESC";
 
             Item item = new Item(itemName, quantity, row, col, useSmallBox);
 
-            return InsertItemWithTags(item, tags, connection, log);
+            return InsertItemWithTags(item, tagSet, connection, log);
         }
 
-        public static InsertItemResponse InsertItemWithTags(Item item, HashSet<string> tags, SqlConnection connection, ILogger log)
+        public static InsertItemResponse InsertItemWithTags(Item item, TagSet tags, SqlConnection connection, ILogger log)
         {
             bool insertSucceeded = TryInsertItem(item, connection, log);
 
@@ -385,14 +390,14 @@ ORDER BY t.TagsMatched DESC";
             }
 
             var queryString = $@"
-DELETE FROM dbo.Tags  WHERE LOWER(Tags.Name)  LIKE '@param1';
-DELETE FROM dbo.Items WHERE LOWER(Items.Name) LIKE '@param1';";
+DELETE FROM dbo.Tags  WHERE Tags.NameKey  LIKE '@param1';
+DELETE FROM dbo.Items WHERE Items.NameKey LIKE '@param1';";
 
-            using (SqlCommand command = new SqlCommand(queryString, connection))
+            using (SqlCommand command = new SqlCommand())
             {
                 command.Connection = connection;
                 command.CommandText = queryString;
-                command.Parameters.AddWithValue("@param1", item.ToLowerInvariant();
+                command.Parameters.AddWithValue("@param1", QueryHelper.Instance.SingularizeAndLower(item));
 
                 int itemsRemoved = command.ExecuteNonQuery();
                 
@@ -414,19 +419,19 @@ DELETE FROM dbo.Items WHERE LOWER(Items.Name) LIKE '@param1';";
         {
             string data = jsonRequestData;
             string item = string.Empty;
-            IEnumerable<string> tags = null;
+            TagSet tagSet;
 
             if (data.Contains(" to "))
             {
                 string[] tagsAndItem = data.Split(" to ", StringSplitOptions.RemoveEmptyEntries);
                 item = tagsAndItem[1];
-                tags = tagsAndItem[0].ToLowerInvariant().Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(a => a.Trim());
+                tagSet = new TagSet(tagsAndItem[0]);
             }
             else if (data.Contains(" add tags "))
             {
                 string[] itemAndTags = data.Split(" add tags ", StringSplitOptions.RemoveEmptyEntries);
                 item = itemAndTags[0];
-                tags = itemAndTags[1].ToLowerInvariant().Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(a => a.Trim());
+                tagSet = new TagSet(itemAndTags[1]);
             }
             else
             {
@@ -440,7 +445,7 @@ DELETE FROM dbo.Items WHERE LOWER(Items.Name) LIKE '@param1';";
                 return new AddTagsResponse(false, -1);
             }
             
-            int tagsAdded = InsertTags(connection, item, tags);
+            int tagsAdded = InsertTags(connection, item, tagSet);
 
             return new AddTagsResponse(true, tagsAdded);
         }
@@ -453,11 +458,16 @@ DELETE FROM dbo.Items WHERE LOWER(Items.Name) LIKE '@param1';";
 
             var setQuantityQuery = $@"
 UPDATE dbo.Items
-SET Items.Quantity = {quantity}
-WHERE LOWER(Items.Name) LIKE '{item.ToLowerInvariant()}'";
+SET Items.Quantity = @param1
+WHERE Items.NameKey LIKE '@param2'";
 
-            using (SqlCommand command = new SqlCommand(setQuantityQuery, connection))
+            using (SqlCommand command = new SqlCommand())
             {
+                command.Connection = connection;
+                command.CommandText = setQuantityQuery;
+                command.Parameters.AddWithValue("@param1", quantity);
+                command.Parameters.AddWithValue("@param2", QueryHelper.Instance.SingularizeAndLower(item));
+
                 if (command.ExecuteNonQuery() == 0)
                 {
                     return new FindItemResponse(null);
@@ -483,14 +493,14 @@ WHERE LOWER(Items.Name) LIKE '{item.ToLowerInvariant()}'";
             var updateQuantityQuery = $@"
 UPDATE dbo.Items
 SET Items.Quantity = Items.Quantity + @param1
-WHERE LOWER(Items.Name) LIKE '@param2'";
+WHERE Items.NameKey LIKE '@param2'";
 
             using (SqlCommand command = new SqlCommand())
             {
                 command.Connection = connection;
                 command.CommandText = updateQuantityQuery;
                 command.Parameters.AddWithValue("@param1", quantity);
-                command.Parameters.AddWithValue("@param2", item.ToLowerInvariant());
+                command.Parameters.AddWithValue("@param2", QueryHelper.Instance.SingularizeAndLower(item));
 
                 if (command.ExecuteNonQuery() == 0)
                 {
@@ -563,7 +573,7 @@ WHERE LOWER(Items.Name) LIKE '@param2'";
         {
             string newItem = string.Empty;
             string existingItem = string.Empty;
-            HashSet<string> tags = new HashSet<string>();
+            TagSet tagSet;
 
             if (text.Contains(" add tags "))
             {
@@ -573,7 +583,7 @@ WHERE LOWER(Items.Name) LIKE '@param2'";
                 newItem = newAndExistingItem[0].Trim();
                 existingItem = newAndExistingItem[1].Trim();
 
-                tags = GetTagsFromString(itemsAndTags[1]);
+                tagSet = new TagSet(itemsAndTags[1]);
             }
             else
             {
@@ -581,7 +591,7 @@ WHERE LOWER(Items.Name) LIKE '@param2'";
 
                 newItem = newAndExistingItem[0].Trim();
                 existingItem = newAndExistingItem[1].Trim();
-                tags = GetTagsFromString(newItem);
+                tagSet = new TagSet(newItem);
             }
 
             FindItemResponse foundItems = TryFindItem(existingItem, connection, log);
@@ -601,7 +611,7 @@ WHERE LOWER(Items.Name) LIKE '@param2'";
 
                 if (TryInsertItem(item, connection, log))
                 {
-                    InsertTags(connection, newItem, tags);
+                    InsertTags(connection, newItem, tagSet);
 
                     FindItemResponse resp = FindItem(newItem, connection, log);
 
@@ -629,7 +639,7 @@ WHERE LOWER(Items.Name) LIKE '@param2'";
             }
 
             string newItem = itemAndTags[0].Trim();
-            HashSet<string> existingItemTags = GetTagsFromString(itemAndTags[1]);
+            TagSet existingItemTags = new TagSet(itemAndTags[1]);
 
             // Take a string of words: "Green motor driver"
             // Extract a HashSet of tags: HashSet<string> = { "Green", "motor", "driver" }
@@ -644,11 +654,11 @@ WHERE LOWER(Items.Name) LIKE '@param2'";
 SELECT TOP (@param1) i.Name, i.Quantity, i.Row, i.Col, i.IsSmallBox, t.TagsMatched
 FROM dbo.Items i JOIN
 (
-    SELECT Name, COUNT(Name) TagsMatched
+    SELECT NameKey, COUNT(NameKey) TagsMatched
     FROM dbo.Tags
     WHERE Tag IN({paramList})
-    GROUP BY Name
-) t ON i.Name = t.Name
+    GROUP BY NameKey
+) t ON i.NameKey = t.NameKey
 ORDER BY t.TagsMatched DESC";
 
             List<TaggedItem> items = new List<TaggedItem>();
@@ -703,7 +713,7 @@ ORDER BY t.TagsMatched DESC";
                     existingItem.Col.Value, 
                     existingItem.IsSmallBox.Value);
 
-                HashSet<string> newItemTags = GetTagsFromString(newItem);
+                TagSet newItemTags = new TagSet(newItem);
 
                 InsertItemResponse resp = InsertItemWithTags(insertItem, newItemTags, connection, log);
 
@@ -731,14 +741,14 @@ ORDER BY t.TagsMatched DESC";
             After substitution:
             USING(VALUES ('AA Battery', 'aa'),('AA Battery', 'battery')) AS Source (Name, Tag)
         */
-        private static int InsertTags(SqlConnection connection, string item, IEnumerable<string> tags)
+        private static int InsertTags(SqlConnection connection, string item, TagSet tagSet)
         {
             string insertTagsCommand = $@"
 MERGE INTO dbo.Tags AS Target
-USING(VALUES {string.Join(",", tags.Select((_, index) => $"(@param1, @param{index + 2})"))}) AS Source (Name, Tag)
-ON Target.Name = Source.Name AND Target.Tag = Source.Tag
+USING(VALUES {string.Join(",", tagSet.Select((_, index) => $"(@param1, @param{index + 2})"))}) AS Source (Name, Tag)
+ON Target.NameKey = Source.NameKey AND Target.Tag = Source.Tag
 WHEN NOT MATCHED BY Target THEN
-INSERT(Name, Tag) VALUES(Source.Name, Source.Tag);";
+INSERT(NameKey, Tag) VALUES(Source.NameKey, Source.Tag);";
 
             int tagsAdded = 0;
             using (SqlCommand sqlCommand = new SqlCommand())
@@ -747,7 +757,7 @@ INSERT(Name, Tag) VALUES(Source.Name, Source.Tag);";
                 sqlCommand.CommandText = insertTagsCommand;
                 sqlCommand.Parameters.AddWithValue("@param1", item);
                 int i = 2;
-                foreach (string tag in tags)
+                foreach (string tag in tagSet)
                 {
                     sqlCommand.Parameters.AddWithValue($"@param{i++}", tag);
                 }
@@ -756,26 +766,17 @@ INSERT(Name, Tag) VALUES(Source.Name, Source.Tag);";
 
             return tagsAdded;
         }
-
-        public static HashSet<string> GetTagsFromString(string item)
-        {
-            if (item == null) return new HashSet<string>();
-
-            return item
-                   .ToLowerInvariant()
-                   .Split(' ', StringSplitOptions.RemoveEmptyEntries)
-                   .Select(a => a.Trim())
-                   .ToHashSet<string>();
-        }
-
+        
         // Done.
         public static bool ItemExists(string itemName, SqlConnection connection, ILogger log)
         {
+            string nameKey = QueryHelper.Instance.SingularizeAndLower(itemName);
+
             string itemExistsQuery = $@"
 SELECT CASE WHEN EXISTS (
     SELECT *
     FROM dbo.Items
-    WHERE LOWER(Items.Name) LIKE '@param1'
+    WHERE Items.NameKey LIKE '@param1'
 )
 THEN CAST(1 AS BIT)
 ELSE CAST(0 AS BIT) END";
@@ -784,7 +785,7 @@ ELSE CAST(0 AS BIT) END";
             {
                 command.Connection = connection;
                 command.CommandText = itemExistsQuery;
-                command.Parameters.AddWithValue("@param1", itemName.ToLowerInvariant());
+                command.Parameters.AddWithValue("@param1", nameKey);
 
                 SqlDataReader reader = command.ExecuteReader();
                 try
@@ -806,8 +807,8 @@ ELSE CAST(0 AS BIT) END";
         public static bool TryInsertItem(Item item, SqlConnection conn, ILogger log)
         {
             var sqlInsertString = @"
-INSERT INTO dbo.Items([Name], [Quantity], [Row], [Col], [IsSmallBox], [DateCreated], [LastUpdated])
-VALUES (@param1, @param2, @param3, @param4, @param5, @param6, @param7)";
+INSERT INTO dbo.Items([NameKey], [Name], [Quantity], [Row], [Col], [IsSmallBox], [DateCreated], [LastUpdated])
+VALUES (@param1, @param2, @param3, @param4, @param5, @param6, @param7, @param8)";
 
             try
             {
@@ -816,13 +817,14 @@ VALUES (@param1, @param2, @param3, @param4, @param5, @param6, @param7)";
                 {
                     sqlCommand.Connection = conn;
                     sqlCommand.CommandText = sqlInsertString;
-                    sqlCommand.Parameters.AddWithValue("@param1", item.Name);
-                    sqlCommand.Parameters.AddWithValue("@param2", item.Quantity.Value);
-                    sqlCommand.Parameters.AddWithValue("@param3", item.Row.Value);
-                    sqlCommand.Parameters.AddWithValue("@param4", item.Col.Value);
-                    sqlCommand.Parameters.AddWithValue("@param5", item.IsSmallBox.Value);
-                    sqlCommand.Parameters.AddWithValue("@param6", DateTime.UtcNow);
+                    sqlCommand.Parameters.AddWithValue("@param1", item.NameKey);
+                    sqlCommand.Parameters.AddWithValue("@param2", item.Name);
+                    sqlCommand.Parameters.AddWithValue("@param3", item.Quantity.Value);
+                    sqlCommand.Parameters.AddWithValue("@param4", item.Row.Value);
+                    sqlCommand.Parameters.AddWithValue("@param5", item.Col.Value);
+                    sqlCommand.Parameters.AddWithValue("@param6", item.IsSmallBox.Value);
                     sqlCommand.Parameters.AddWithValue("@param7", DateTime.UtcNow);
+                    sqlCommand.Parameters.AddWithValue("@param8", DateTime.UtcNow);
                     insertSucceeded = sqlCommand.ExecuteNonQuery() > 0;
                 }
 
@@ -870,18 +872,18 @@ VALUES (@param1, @param2, @param3, @param4, @param5, @param6, @param7)";
             return false;
         }
 
-        public static bool TryGetTagsInfo(string info, int boxIndex, out int startIndex, out HashSet<string> tags)
+        public static bool TryGetTagsInfo(string info, int boxIndex, out int startIndex, out TagSet tags)
         {
             string tagsTag = " with tags ";
             startIndex = info.IndexOf(tagsTag);
 
             if (startIndex == -1)
             {
-                tags = new HashSet<string>();
+                tags = new TagSet();
                 return false;
             }
 
-            string tagsString = string.Empty;
+            string tagsString;
             int tagsStartIndex = startIndex + tagsTag.Length;
 
             if (startIndex < boxIndex)
@@ -895,18 +897,12 @@ VALUES (@param1, @param2, @param3, @param4, @param5, @param6, @param7)";
 
             if (!string.IsNullOrEmpty(tagsString))
             {
-                tagsString = tagsString.ToLowerInvariant();
-
-                tags = new HashSet<string>(
-                    tagsString
-                    .Split(' ', StringSplitOptions.RemoveEmptyEntries)
-                    .Select(a => a.Trim()));
-
+                tags = new TagSet(tagsString);
                 return true;
             }
             else
             {
-                tags = new HashSet<string>();
+                tags = new TagSet();
                 return false;
             }
         }
