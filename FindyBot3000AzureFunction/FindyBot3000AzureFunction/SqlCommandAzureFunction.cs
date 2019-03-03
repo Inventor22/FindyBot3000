@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Linq;
 using Microsoft.Extensions.Configuration;
+using Pluralize.NET.Core;
 
 namespace FindyBot3000.AzureFunction
 {
@@ -133,6 +134,8 @@ namespace FindyBot3000.AzureFunction
         public static FindItemResponse FindItem(dynamic jsonRequestData, SqlConnection connection, ILogger log)
         {
             string item = jsonRequestData;
+
+            string singularizedItem;
 
             List<Item> items = new List<Item>();
 
@@ -321,55 +324,6 @@ ORDER BY t.TagsMatched DESC";
                 return findItemResponse;
             }
 
-            /*
-            var checkIfExistsQuery = $@"SELECT Name,Quantity,Row,Col FROM dbo.Items WHERE LOWER(Items.Name) LIKE '{itemLower}'";
-
-            using (SqlCommand command = new SqlCommand(checkIfExistsQuery, connection))
-            {
-                SqlDataReader reader = command.ExecuteReader();
-
-                try
-                {
-                    if (reader.HasRows)
-                    {
-                        // There will only be one object in this list
-                        List<Item> jsonObjects = new List<Item>();
-                        while (reader.Read())
-                        {
-                            jsonObjects.Add(
-                                new Item
-                                {
-                                    Name = (string)reader["Name"],
-                                    Quantity = (int)reader["Quantity"],
-                                    Row = (int)reader["Row"],
-                                    Col = (int)reader["Col"]
-                                });
-                        }
-
-                        var response = new
-                        {
-                            Command = Commands.FindItem,
-                            Count = jsonObjects.Count,
-                            Result = jsonObjects
-                        };
-
-                        string jsonQueryResponse = JsonConvert.SerializeObject(response);
-                        log.LogInformation(jsonQueryResponse);
-
-                        return jsonQueryResponse;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    log.LogInformation(ex.Message);
-                }
-                finally
-                {
-                    // Always call Close when done reading.
-                    reader.Close();
-                }
-            } */
-
             // Item doesn't exist; insert.
             // Find existing boxes
             var sqlAllConsumedBoxes = string.Format("SELECT DISTINCT ROW,COL FROM dbo.Items");
@@ -438,7 +392,7 @@ DELETE FROM dbo.Items WHERE LOWER(Items.Name) LIKE '@param1';";
             {
                 command.Connection = connection;
                 command.CommandText = queryString;
-                command.Parameters.AddWithValue("@param1", item.ToLowerInvariant(););
+                command.Parameters.AddWithValue("@param1", item.ToLowerInvariant();
 
                 int itemsRemoved = command.ExecuteNonQuery();
                 
