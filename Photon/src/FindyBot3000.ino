@@ -96,13 +96,20 @@ Adafruit_NeoMatrix matrix = Adafruit_NeoMatrix(
   NEO_MATRIX_TOP + NEO_MATRIX_LEFT + NEO_MATRIX_ROWS + NEO_MATRIX_ZIGZAG,
   PIXEL_TYPE);
 
-const uint16_t colors[] =
-{
-  matrix.Color(255, 0, 0),   // red
-  matrix.Color(0, 255, 0),   // green
-  matrix.Color(0, 0, 255),   // blue
-  matrix.Color(255, 0, 255), // magenta
-  matrix.Color(255, 165, 0)  // orange
+uint16_t red = matrix.Color(255, 0, 0);
+uint16_t green = matrix.Color(0, 255, 0);
+uint16_t blue = matrix.Color(0, 0, 255);
+uint16_t magenta = matrix.Color(255, 0, 255);
+uint16_t orange = matrix.Color(255, 165, 0);
+uint16_t cyan = matrix.Color(0, 255, 255);
+
+const uint16_t colors[] = {
+  red,
+  green,
+  blue,
+  magenta,
+  orange,
+  cyan
 };
 
 const uint8_t colorCount = sizeof(colors) / sizeof(uint16_t);
@@ -214,6 +221,7 @@ const char* SetQuantity = "SetQuantity";
 const char* UpdateQuantity = "UpdateQuantity";
 const char* ShowAllBoxes = "ShowAllBoxes";
 const char* BundleWith = "BundleWith";
+const char* HowMany = "HowMany";
 const char* UnknownCommand = "UnknownCommand";
 
 // Processed on Particle Photon
@@ -238,7 +246,8 @@ const CommandHandler commands[] =
   { SetDebugging, setDebugging },
   { SetScrollText, setScrollText },
   { ShowAllBoxes, showAllBoxes },
-  { BundleWith, bundleWith }
+  { BundleWith, bundleWith },
+  { HowMany, howMany }
 };
 
 void googleAssistantEventHandler(const char* event, const char* data)
@@ -319,6 +328,11 @@ void bundleWith(const char *data)
   callAzureFunction(BundleWith, data, true);
 }
 
+void howMany(const char *data)
+{
+  callAzureFunction(HowMany, data);
+}
+
 // Turn the LED matrix power supply relay on or off
 void setDisplay(const char *data)
 {
@@ -384,6 +398,7 @@ const ResponseHandler responseHandlers[] =
   { UpdateQuantity, updateQuantityResponseHandler },
   { ShowAllBoxes, showAllBoxesResponseHandler },
   { BundleWith, bundleWithResponseHandler },
+  { HowMany, howManyResponseHandler },
   { UnknownCommand, unknownCommandResponseHandler }
 };
 
@@ -440,6 +455,11 @@ void findItemResponseHandler(JsonObject& json)
   int count = json["Count"];
   if (count <= 0) {
     Serial.println("Item not found");
+    setDisplay(ON);
+    matrix.fillScreen(0);
+    matrix.drawPixel(29, 7, red);
+    matrix.drawPixel(30, 7, red);
+    matrix.show();
   } else {
     JsonObject& result = json["Result"][0];
 
@@ -448,15 +468,15 @@ void findItemResponseHandler(JsonObject& json)
     int row = result["Row"];
     int col = result["Col"];
 
-    //lightBox(row, column, colors[1]);
+    //lightBox(row, column, green);
     sRow = row;
     sCol = col;
-    sColor = colors[1];
+    sColor = green;
     sSet = true;
 
     setDisplay(ON);
     matrix.fillScreen(0);
-    lightBox(row, col, colors[1]);
+    lightBox(row, col, green);
     matrix.show();
 
     Serial.printlnf("item: %s, row: %d, col: %d, quantity: %d", item, row, col, quantity);
@@ -512,7 +532,7 @@ void insertItemResponseHandler(JsonObject& json)
   int col = json["Col"];
 
   matrix.fillScreen(0);
-  lightBox(row, col, colors[1]);
+  lightBox(row, col, green);
   matrix.show();
 
   Serial.printlnf("row: %d, col: %d", row, col);
@@ -553,7 +573,7 @@ void setQuantityResponseHandler(JsonObject& json)
   int col = result["Col"];
 
   matrix.fillScreen(0);
-  lightBox(row, col, colors[1]);
+  lightBox(row, col, green);
   matrix.show();
 
   Serial.printlnf("row: %d, col: %d", row, col);
@@ -573,7 +593,7 @@ void updateQuantityResponseHandler(JsonObject& json)
   int col = result["Col"];
 
   matrix.fillScreen(0);
-  lightBox(row, col, colors[1]);
+  lightBox(row, col, green);
   matrix.show();
 
   Serial.printlnf("row: %d, col: %d", row, col);
@@ -599,7 +619,7 @@ void showAllBoxesResponseHandler(JsonObject& json)
     int row = coordsJson[i] - 'a';
     int col = coordsJson[i+1] - 'a';
     //Serial.printf("[%d,%d],", row, col);
-    lightBox(row, col, colors[r(0, colorCount-1)]/*colors[1]*/);
+    lightBox(row, col, colors[r(0, colorCount-1)]);
   }
   //Serial.println();
 
@@ -623,10 +643,30 @@ void bundleWithResponseHandler(JsonObject& json)
   const char* existingItem = json["ExistingItem"];
 
   matrix.fillScreen(0);
-  lightBox(row, col, colors[1]);
+  lightBox(row, col, green);
   matrix.show();
 
   Serial.printlnf("NewItem: %s, row: %d, col: %d, quantity: %d, ExistingItem: %s", newItem, row, col, quantity, existingItem);
+}
+
+void howManyResponseHandler(JsinObject& json)
+{
+  Serial.println("howManyResponseHandler");
+
+  if (!json["Success"]) {
+    Serial.println("HowMany failed");
+    return;
+  }
+
+  int quantity = json["Quantity"];
+  int row = json["Row"];
+  int col = json["Col"];
+
+  matrix.fillScreen(0);
+  matrix.setCursor(3, 0);
+  matrix.print(quantity);
+  lightBox(col, row, green);
+  matrix.show();
 }
 
 void unknownCommandResponseHandler(JsonObject& json)

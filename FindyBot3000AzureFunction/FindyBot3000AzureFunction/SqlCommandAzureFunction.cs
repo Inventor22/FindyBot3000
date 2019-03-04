@@ -105,6 +105,10 @@ namespace FindyBot3000.AzureFunction
                         response = BundleWith(data, connection, log);
                         break;
 
+                    case Commands.HowMany:
+                        response = HowMany(data, connection, log);
+                        break;
+
                     default:
                         response = new UnknownCommandResponse(command);
                         break;
@@ -728,6 +732,22 @@ ORDER BY t.TagsMatched DESC";
             }
 
             return new BundleWithResponse();
+        }
+
+        public static HowManyResponse HowMany(dynamic jsonRequestData, SqlConnection connection, ILogger log)
+        {
+            string itemName = jsonRequestData;
+
+            FindItemResponse itemResponse = TryFindItem(itemName, connection, log);
+            if (itemResponse.Count == 1)
+            {
+                Item i = itemResponse.Result.First();
+                return new HowManyResponse(true, i.Name, i.Quantity, i.Row, i.Col);
+            }
+            else
+            {
+                return new HowManyResponse(false, itemName);
+            }
         }
 
 
