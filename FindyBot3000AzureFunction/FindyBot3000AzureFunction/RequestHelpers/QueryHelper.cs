@@ -16,7 +16,7 @@ namespace FindyBot3000.AzureFunction
 
         public string SingularizeAndLower(string text)
         {
-            return QueryHelper.Instance.pluralizer.Singularize(text.ToLowerInvariant());
+            return this.pluralizer.Singularize(text.ToLowerInvariant());
         }
     }
 }

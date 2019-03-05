@@ -455,11 +455,7 @@ void findItemResponseHandler(JsonObject& json)
   int count = json["Count"];
   if (count <= 0) {
     Serial.println("Item not found");
-    setDisplay(ON);
-    matrix.fillScreen(0);
-    matrix.drawPixel(29, 7, red);
-    matrix.drawPixel(30, 7, red);
-    matrix.show();
+    dispayItemNotFound();
   } else {
     JsonObject& result = json["Result"][0];
 
@@ -649,7 +645,7 @@ void bundleWithResponseHandler(JsonObject& json)
   Serial.printlnf("NewItem: %s, row: %d, col: %d, quantity: %d, ExistingItem: %s", newItem, row, col, quantity, existingItem);
 }
 
-void howManyResponseHandler(JsinObject& json)
+void howManyResponseHandler(JsonObject& json)
 {
   Serial.println("howManyResponseHandler");
 
@@ -665,7 +661,7 @@ void howManyResponseHandler(JsinObject& json)
   matrix.fillScreen(0);
   matrix.setCursor(3, 0);
   matrix.print(quantity);
-  lightBox(col, row, green);
+  lightBox(row, col, green);
   matrix.show();
 }
 
@@ -677,6 +673,15 @@ void unknownCommandResponseHandler(JsonObject& json)
 }
 
 /* =============== HELPER FUNCTIONS =============== */
+
+void dispayItemNotFound()
+{
+  setDisplay(ON);
+  matrix.fillScreen(0);
+  matrix.drawPixel(29, 7, red);
+  matrix.drawPixel(30, 7, red);
+  matrix.show();
+}
 
 void lightBox(int row, int col, uint16_t color)
 {
