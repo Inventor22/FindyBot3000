@@ -239,7 +239,9 @@ void greenRedGradientTest()
 
   for (int i = 0; i < LED_COLS; i++)
   {
-    matrix.drawPixel(i, row+5, getGradientColor(red, blue, ((float)i)/LED_COLS));
+    matrix.drawPixel(i, row+5, getGradientColor(green, blue, ((float)i)/LED_COLS));
+    matrix.drawPixel(i, row+6, getGradientColor(blue, red, ((float)i)/LED_COLS));
+    matrix.drawPixel(i, row+7, getGradientColor(red, green, ((float)i)/LED_COLS));
   }
 
   matrix.show();
