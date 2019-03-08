@@ -209,6 +209,53 @@ uint16_t getGradientColor(uint16_t col0, uint16_t col1, float value)
   return matrix.Color(red, green, blue);
 }
 
+uint16_t betterGradient(uint16_t col0, uint16_t col1, float value) {
+  uint8_t r0 = (col0 & 0xF800) >> 8;
+  uint8_t g0 = (col0 & 0x07E0) >> 3;
+  uint8_t b0 = (col0 & 0x1F) << 3;
+  r0 = (r0 * 255) / 31;
+  g0 = (g0 * 255) / 63;
+  b0 = (b0 * 255) / 31;
+
+  uint8_t r1 = (col1 & 0xF800) >> 8;
+  uint8_t g1 = (col1 & 0x07E0) >> 3;
+  uint8_t b1 = (col1 & 0x1F) << 3;
+  r1 = (r1 * 255) / 31;
+  g1 = (g1 * 255) / 63;
+  b1 = (b1 * 255) / 31;
+
+  uint8_t red = (1.0-value) * r0 + value * r1;
+  uint8_t green = (1.0-value) * g0 + value * g1;
+  uint8_t blue = (1.0-value) * b0 + value * b1;
+
+  return matrix.Color(red, green, blue);
+}
+
+uint16_t bestGradient(uint16_t col0, uint16_t col1, float value) {
+  uint8_t r0 = (col0 & 0xF800) >> 8;
+  uint8_t g0 = (col0 & 0x07E0) >> 3;
+  uint8_t b0 = (col0 & 0x1F) << 3;
+  r0 = (r0 * 255) / 31;
+  g0 = (g0 * 255) / 63;
+  b0 = (b0 * 255) / 31;
+
+  uint8_t r1 = (col1 & 0xF800) >> 8;
+  uint8_t g1 = (col1 & 0x07E0) >> 3;
+  uint8_t b1 = (col1 & 0x1F) << 3;
+  r1 = (r1 * 255) / 31;
+  g1 = (g1 * 255) / 63;
+  b1 = (b1 * 255) / 31;
+
+  red = value <= 0.5 ? 255 : (255 - 255*(value-0.5)*2);
+  blue = value <= 0.5 ? 255 * (value*2) : 255;
+
+  uint8_t red = (1.0-value) * r0 + value * r1;
+  uint8_t green = (1.0-value) * g0 + value * g1;
+  uint8_t blue = (1.0-value) * b0 + value * b1;
+
+  return matrix.Color(red, green, blue);
+}
+
 // 0.0 = Red, 0.5 = Yellow, 1.0 = Green
 uint16_t getGreenRedValue(float value)
 {
@@ -239,9 +286,20 @@ void greenRedGradientTest()
 
   for (int i = 0; i < LED_COLS; i++)
   {
-    matrix.drawPixel(i, row+5, getGradientColor(green, blue, ((float)i)/LED_COLS));
+    matrix.drawPixel(i, row+4, getGradientColor(green, blue, ((float)i)/LED_COLS));
+    matrix.drawPixel(i, row+5, betterGradient(green, blue, ((float)i)/LED_COLS));
+
     matrix.drawPixel(i, row+6, getGradientColor(blue, red, ((float)i)/LED_COLS));
-    matrix.drawPixel(i, row+7, getGradientColor(red, green, ((float)i)/LED_COLS));
+    matrix.drawPixel(i, row+7, betterGradient(red, blue, ((float)i)/LED_COLS));
+
+    matrix.drawPixel(i, row+8, getGradientColor(red, green, ((float)i)/LED_COLS));
+    matrix.drawPixel(i, row+9, betterGradient(red, green, ((float)i)/LED_COLS));
+
+    // matrix.drawPixel(i, row+9, betterGradient(green, blue, ((float)i)/LED_COLS));
+    // matrix.drawPixel(i, row+10, betterGradient(blue, red, ((float)i)/LED_COLS));
+    // matrix.drawPixel(i, row+11, betterGradient(red, green, ((float)i)/LED_COLS));
+    matrix.drawPixel(i, row+10, getGradientColor(cyan, orange, ((float)i)/LED_COLS));
+    matrix.drawPixel(i, row+11, betterGradient(cyan, orange, ((float)i)/LED_COLS));
   }
 
   matrix.show();
@@ -553,10 +611,21 @@ void findTagsResponseHandler(JsonObject& json)
      //Serial.printlnf("Name: %s, Row: %d, Col: %d, Confidence: %f", name, row, col, confidence);
      Serial.printlnf("Row: %d, Col: %d, Confidence: %f", row, col, confidence);
 
-     lightBox(row, col, getGreenRedValue(confidence));
+     //lightBox(row, col, getGreenRedValue(normalize(confidence, 1.0/numTags, 1.0)));
+     //lightBox(row, col, getGradientColor(red, blue, normalize(confidence, 1.0/numTags, 1.0)));
+     lightBox(row, col, betterGradient(red, blue, normalize(confidence, 1.0/numTags, 1.0)));
   }
 
   matrix.show();
+}
+
+// Normalize a number between a specific range.
+// ex: normalize(0.8, 0.5, 1.0) => .8 is 3/5 between range,
+// function returns 3/5 => 0.6
+float normalize(float value, float start, float end)
+{
+    if (start == end) return value;
+    return (value - start) / (end - start);
 }
 
 void insertItemResponseHandler(JsonObject& json)
