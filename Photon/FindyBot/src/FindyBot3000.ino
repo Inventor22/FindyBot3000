@@ -172,6 +172,43 @@ void loop()
   if (enableRainbowLeds)   rainbowLeds();
 }
 
+// weight = 0 -> col0, weight = 0.5 -> 50/50 col0/col1, weight = 1 -> col1
+uint16_t getGradientColor(uint16_t col0, uint16_t col1, float value)
+{
+  uint8_t red = 0, green = 0, blue = 0;
+  uint8_t r = (col0 & 0xF800) >> 8;
+  uint8_t g = (col0 & 0x07E0) >> 3;
+  uint8_t b = (col0 & 0x1F) << 3;
+  // r = (r * 255) / 31;
+  // g = (g * 255) / 63;
+  // b = (b * 255) / 31;
+
+  if (r > 0) red = r;
+  if (g > 0) green = g;
+  if (b > 0) blue = b;
+
+  r = (col1 & 0xF800) >> 8;
+  g = (col1 & 0x07E0) >> 3;
+  b = (col1 & 0x1F) << 3;
+
+  if (r > 0) red = r;
+  if (g > 0) green = g;
+  if (b > 0) blue = b;
+
+  if (red & blue) {
+    red = value <= 0.5 ? 255 : (255 - 255*(value-0.5)*2);
+    blue = value <= 0.5 ? 255 * (value*2) : 255;
+  }
+  else if (red & green) {
+    red = value <= 0.5 ? 255 : (255 - 255*(value-0.5)*2);
+    green = value <= 0.5 ? 255 * (value*2) : 255;
+  } else { // green & blue
+    green = value <= 0.5 ? 255 : (255 - 255*(value-0.5)*2);
+    blue = value <= 0.5 ? 255 * (value*2) : 255;
+  }
+  return matrix.Color(red, green, blue);
+}
+
 // 0.0 = Red, 0.5 = Yellow, 1.0 = Green
 uint16_t getGreenRedValue(float value)
 {
@@ -198,6 +235,11 @@ void greenRedGradientTest()
   for (int i = 0; i < LED_COLS; i++)
   {
     matrix.drawPixel(i, row+3, getGreenRedValue(((float)i)/LED_COLS));
+  }
+
+  for (int i = 0; i < LED_COLS; i++)
+  {
+    matrix.drawPixel(i, row+5, getGradientColor(red, blue, ((float)i)/LED_COLS));
   }
 
   matrix.show();
