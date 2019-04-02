@@ -102,6 +102,8 @@ uint16_t blue = matrix.Color(0, 0, 255);
 uint16_t magenta = matrix.Color(255, 0, 255);
 uint16_t orange = matrix.Color(255, 165, 0);
 uint16_t cyan = matrix.Color(0, 255, 255);
+uint16_t purple = matrix.Color(128,0,128);
+uint16_t white = matrix.Color(255, 255, 255);
 
 const uint16_t colors[] = {
   red,
@@ -111,6 +113,25 @@ const uint16_t colors[] = {
   orange,
   cyan
 };
+
+struct ColorName {
+  const char* name;
+  uint16_t color;
+};
+
+const ColorName colorNames[] = {
+  { "red", red },
+  { "green", green },
+  { "blue", blue },
+  { "magenta", magenta },
+  { "orange", orange },
+  { "cyan", cyan },
+  { "white", white },
+  { "purple", purple }
+};
+
+uint16_t likelyColor = green;
+uint16_t unlikelyColor = red;
 
 const uint8_t colorCount = sizeof(colors) / sizeof(uint16_t);
 
@@ -209,7 +230,8 @@ uint16_t getGradientColor(uint16_t col0, uint16_t col1, float value)
   return matrix.Color(red, green, blue);
 }
 
-uint16_t betterGradient(uint16_t col0, uint16_t col1, float value) {
+uint16_t gradientBetween(uint16_t col0, uint16_t col1, float value)
+{
   uint8_t r0 = (col0 & 0xF800) >> 8;
   uint8_t g0 = (col0 & 0x07E0) >> 3;
   uint8_t b0 = (col0 & 0x1F) << 3;
@@ -224,34 +246,14 @@ uint16_t betterGradient(uint16_t col0, uint16_t col1, float value) {
   g1 = (g1 * 255) / 63;
   b1 = (b1 * 255) / 31;
 
-  uint8_t red = (1.0-value) * r0 + value * r1;
-  uint8_t green = (1.0-value) * g0 + value * g1;
-  uint8_t blue = (1.0-value) * b0 + value * b1;
+  // Linearly interpolate values
+  // uint8_t red = (1.0-value) * r0 + value * r1 + 0.5;
+  // uint8_t green = (1.0-value) * g0 + value * g1 + 0.5;
+  // uint8_t blue = (1.0-value) * b0 + value * b1 + 0.5;
 
-  return matrix.Color(red, green, blue);
-}
-
-uint16_t bestGradient(uint16_t col0, uint16_t col1, float value) {
-  uint8_t r0 = (col0 & 0xF800) >> 8;
-  uint8_t g0 = (col0 & 0x07E0) >> 3;
-  uint8_t b0 = (col0 & 0x1F) << 3;
-  r0 = (r0 * 255) / 31;
-  g0 = (g0 * 255) / 63;
-  b0 = (b0 * 255) / 31;
-
-  uint8_t r1 = (col1 & 0xF800) >> 8;
-  uint8_t g1 = (col1 & 0x07E0) >> 3;
-  uint8_t b1 = (col1 & 0x1F) << 3;
-  r1 = (r1 * 255) / 31;
-  g1 = (g1 * 255) / 63;
-  b1 = (b1 * 255) / 31;
-
-  red = value <= 0.5 ? 255 : (255 - 255*(value-0.5)*2);
-  blue = value <= 0.5 ? 255 * (value*2) : 255;
-
-  uint8_t red = (1.0-value) * r0 + value * r1;
-  uint8_t green = (1.0-value) * g0 + value * g1;
-  uint8_t blue = (1.0-value) * b0 + value * b1;
+  uint8_t red = (r1-r0) * value + r0;
+  uint8_t green = (g1-g0) * value + g0;
+  uint8_t blue = (b1-b0) * value + b0;
 
   return matrix.Color(red, green, blue);
 }
@@ -287,19 +289,21 @@ void greenRedGradientTest()
   for (int i = 0; i < LED_COLS; i++)
   {
     matrix.drawPixel(i, row+4, getGradientColor(green, blue, ((float)i)/LED_COLS));
-    matrix.drawPixel(i, row+5, betterGradient(green, blue, ((float)i)/LED_COLS));
+    matrix.drawPixel(i, row+5, gradientBetween(green, blue, ((float)i)/LED_COLS));
 
     matrix.drawPixel(i, row+6, getGradientColor(blue, red, ((float)i)/LED_COLS));
-    matrix.drawPixel(i, row+7, betterGradient(red, blue, ((float)i)/LED_COLS));
+    matrix.drawPixel(i, row+7, gradientBetween(red, blue, ((float)i)/LED_COLS));
 
     matrix.drawPixel(i, row+8, getGradientColor(red, green, ((float)i)/LED_COLS));
-    matrix.drawPixel(i, row+9, betterGradient(red, green, ((float)i)/LED_COLS));
+    matrix.drawPixel(i, row+9, gradientBetween(red, green, ((float)i)/LED_COLS));
 
     // matrix.drawPixel(i, row+9, betterGradient(green, blue, ((float)i)/LED_COLS));
     // matrix.drawPixel(i, row+10, betterGradient(blue, red, ((float)i)/LED_COLS));
     // matrix.drawPixel(i, row+11, betterGradient(red, green, ((float)i)/LED_COLS));
     matrix.drawPixel(i, row+10, getGradientColor(cyan, orange, ((float)i)/LED_COLS));
-    matrix.drawPixel(i, row+11, betterGradient(cyan, orange, ((float)i)/LED_COLS));
+    matrix.drawPixel(i, row+11, gradientBetween(cyan, orange, ((float)i)/LED_COLS));
+    matrix.drawPixel(i, row+12, gradientBetween(purple, orange, ((float)i)/LED_COLS));
+    matrix.drawPixel(i, row+13, gradientBetween(white, blue, ((float)i)/LED_COLS));
   }
 
   matrix.show();
@@ -325,6 +329,8 @@ const char* ShowAllBoxes = "ShowAllBoxes";
 const char* BundleWith = "BundleWith";
 const char* HowMany = "HowMany";
 const char* UnknownCommand = "UnknownCommand";
+const char* ChangeColors = "ChangeColors";
+const char* Welcome = "Welcome";
 
 // Processed on Particle Photon
 const char* SetBrightness = "SetBrightness";
@@ -349,7 +355,9 @@ const CommandHandler commands[] =
   { SetScrollText, setScrollText },
   { ShowAllBoxes, showAllBoxes },
   { BundleWith, bundleWith },
-  { HowMany, howMany }
+  { HowMany, howMany },
+  { ChangeColors, changeColors },
+  { Welcome, welcome }
 };
 
 void googleAssistantEventHandler(const char* event, const char* data)
@@ -433,6 +441,60 @@ void bundleWith(const char *data)
 void howMany(const char *data)
 {
   callAzureFunction(HowMany, data);
+}
+
+void changeColors(const char *data)
+{
+  if (data == NULL) return;
+
+  int len = strlen(data)+1;
+  char buff[len];
+  memcpy(buff, data, len);
+
+  char *token = strtok(buff, " to ");
+  if (token == NULL) return;
+  for(ColorName c : colorNames) {
+    if (strcasestr(c.name, token)) {
+      likelyColor = c.color;
+      Serial.printlnf("likelyColor: %s", c.name);
+      break;
+    }
+  }
+  token = strtok(NULL, " to ");
+  if (token == NULL) return;
+  for(ColorName c : colorNames) {
+    if (strcasestr(c.name, token)) {
+      unlikelyColor = c.color;
+      Serial.printlnf("unlikelyColor: %s", c.name);
+      break;
+    }
+  }
+}
+
+void welcome(const char* data)
+{
+  if (data == NULL) return;
+  //
+  // char buff[strlen(data) * 2 + 1]
+  // for(int i = 0; i < strlen(data); i++)
+  // {
+  //   char c = data[i] <= 'Z' ? data[i] : data[i] - ('a'-'A');
+  //   buff[i] = c;
+  //   buff[i+1] = ' ';
+  // }
+
+  String s(data);
+  s = s.toUpperCase();
+  text = "W E L C O M E  H O M E ";
+
+  for(int i = 0; i < s.length(); i++) {
+    text += ' ';
+    text += s[i];
+  }
+
+  textLength = text.length();
+  enableTextScrolling = true;
+  setDisplay(ON);
 }
 
 // Turn the LED matrix power supply relay on or off
@@ -613,7 +675,7 @@ void findTagsResponseHandler(JsonObject& json)
 
      //lightBox(row, col, getGreenRedValue(normalize(confidence, 1.0/numTags, 1.0)));
      //lightBox(row, col, getGradientColor(red, blue, normalize(confidence, 1.0/numTags, 1.0)));
-     lightBox(row, col, betterGradient(red, blue, normalize(confidence, 1.0/numTags, 1.0)));
+     lightBox(row, col, gradientBetween(unlikelyColor, likelyColor, normalize(confidence, 1.0/numTags, 1.0)));
   }
 
   matrix.show();
