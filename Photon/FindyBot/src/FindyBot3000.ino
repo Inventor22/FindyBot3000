@@ -328,15 +328,15 @@ const char* UpdateQuantity = "UpdateQuantity";
 const char* ShowAllBoxes = "ShowAllBoxes";
 const char* BundleWith = "BundleWith";
 const char* HowMany = "HowMany";
-const char* UnknownCommand = "UnknownCommand";
-const char* ChangeColors = "ChangeColors";
-const char* Welcome = "Welcome";
 
 // Processed on Particle Photon
+const char* Welcome = "Welcome";
 const char* SetBrightness = "SetBrightness";
 const char* SetDisplay = "SetDisplay";
 const char* SetDebugging = "SetDebugging";
 const char* SetScrollText = "SetScrollText";
+const char* ChangeColors = "ChangeColors";
+const char* UnknownCommand = "UnknownCommand";
 
 
 // Function callbacks
@@ -485,7 +485,7 @@ void welcome(const char* data)
 
   String s(data);
   s = s.toUpperCase();
-  text = "W E L C O M E  H O M E ";
+  text = "W E L C O M E  ";
 
   for(int i = 0; i < s.length(); i++) {
     text += ' ';

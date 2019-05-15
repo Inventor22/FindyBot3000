@@ -1,0 +1,378 @@
+{
+	"info": {
+		"_postman_id": "e503f83b-68f2-41cd-83f5-f0e0cca8d051",
+		"name": "FindyBot3000",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "FindItem",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"name\": \"callAzureFunctionEvent\",\r\n  \"data\": \"{\\\"command\\\":\\\"FindItem\\\", \\\"data\\\":\\\"AA Battery\\\"}\",\r\n  \"ttl\": 60,\r\n  \"published_at\": \"2019-01-27T02:23:55.127Z\",\r\n  \"coreid\": \"deadbeef\"\r\n}"
+				},
+				"url": {
+					"raw": "http://localhost:7071/api/SqlCommandAzureFunction",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "7071",
+					"path": [
+						"api",
+						"SqlCommandAzureFunction"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "InsertItem",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"name\": \"callAzureFunctionEvent\",\r\n  \"data\": \"{\\\"command\\\":\\\"InsertItem\\\", \\\"data\\\":{\\\"Info\\\":\\\"Yellow LED\\\",\\\"Quantity\\\":32}}\",\r\n  \"ttl\": 60,\r\n  \"published_at\": \"2019-02-20T02:23:55.127Z\",\r\n  \"coreid\": \"deadbeef\"\r\n}"
+				},
+				"url": {
+					"raw": "http://localhost:7071/api/SqlCommandAzureFunction",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "7071",
+					"path": [
+						"api",
+						"SqlCommandAzureFunction"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "InsertItem box and tags",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"name\": \"callAzureFunctionEvent\",\r\n  \"data\": \"{\\\"command\\\":\\\"InsertItem\\\", \\\"data\\\":{\\\"Info\\\":\\\"magic wand into a big box with tags harry potter\\\",\\\"Quantity\\\":1}}\",\r\n  \"ttl\": 60,\r\n  \"published_at\": \"2019-02-20T02:23:55.127Z\",\r\n  \"coreid\": \"deadbeef\"\r\n}"
+				},
+				"url": {
+					"raw": "http://localhost:7071/api/SqlCommandAzureFunction",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "7071",
+					"path": [
+						"api",
+						"SqlCommandAzureFunction"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "RemoveItem",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"name\": \"callAzureFunctionEvent\",\r\n  \"data\": \"{\\\"command\\\":\\\"RemoveItem\\\", \\\"data\\\":\\\"Blue LED\\\"}\",\r\n  \"ttl\": 60,\r\n  \"published_at\": \"2019-02-20T02:23:55.127Z\",\r\n  \"coreid\": \"deadbeef\"\r\n}"
+				},
+				"url": {
+					"raw": "http://localhost:7071/api/SqlCommandAzureFunction",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "7071",
+					"path": [
+						"api",
+						"SqlCommandAzureFunction"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "FindTags",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"name\": \"callAzureFunctionEvent\",\r\n  \"data\": \"{\\\"command\\\":\\\"FindTags\\\", \\\"data\\\":\\\"Pocket knife\\\"}\",\r\n  \"ttl\": 60,\r\n  \"published_at\": \"2019-02-20T02:23:55.127Z\",\r\n  \"coreid\": \"deadbeef\"\r\n}"
+				},
+				"url": {
+					"raw": "http://localhost:7071/api/SqlCommandAzureFunction",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "7071",
+					"path": [
+						"api",
+						"SqlCommandAzureFunction"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "AddTags",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"name\": \"callAzureFunctionEvent\",\r\n  \"data\": \"{\\\"command\\\":\\\"AddTags\\\", \\\"data\\\":\\\"sharp cut to Pocket knife\\\"}\",\r\n  \"ttl\": 60,\r\n  \"published_at\": \"2019-02-20T02:23:55.127Z\",\r\n  \"coreid\": \"deadbeef\"\r\n}"
+				},
+				"url": {
+					"raw": "http://localhost:7071/api/SqlCommandAzureFunction",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "7071",
+					"path": [
+						"api",
+						"SqlCommandAzureFunction"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "UpdateQuantity",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"name\": \"callAzureFunctionEvent\",\r\n  \"data\": \"{\\\"command\\\":\\\"UpdateQuantity\\\", \\\"data\\\":{\\\"Item\\\":\\\"Red LEDs\\\",\\\"Quantity\\\":3,\\\"Add\\\":true}}\",\r\n  \"ttl\": 60,\r\n  \"published_at\": \"2019-02-20T02:23:55.127Z\",\r\n  \"coreid\": \"deadbeef\"\r\n}"
+				},
+				"url": {
+					"raw": "http://localhost:7071/api/SqlCommandAzureFunction",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "7071",
+					"path": [
+						"api",
+						"SqlCommandAzureFunction"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "SetQuantity",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"name\": \"callAzureFunctionEvent\",\r\n  \"data\": \"{\\\"command\\\":\\\"SetQuantity\\\", \\\"data\\\":{\\\"Item\\\":\\\"Red LED\\\",\\\"Quantity\\\":32}}\",\r\n  \"ttl\": 60,\r\n  \"published_at\": \"2019-02-20T02:23:55.127Z\",\r\n  \"coreid\": \"deadbeef\"\r\n}"
+				},
+				"url": {
+					"raw": "http://localhost:7071/api/SqlCommandAzureFunction",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "7071",
+					"path": [
+						"api",
+						"SqlCommandAzureFunction"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "ShowAllBoxes",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"name\": \"callAzureFunctionEvent\",\r\n  \"data\": \"{\\\"command\\\":\\\"ShowAllBoxes\\\", \\\"data\\\":\\\"1\\\"}\",\r\n  \"ttl\": 60,\r\n  \"published_at\": \"2019-01-27T02:23:55.127Z\",\r\n  \"coreid\": \"deadbeef\"\r\n}"
+				},
+				"url": {
+					"raw": "http://localhost:7071/api/SqlCommandAzureFunction",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "7071",
+					"path": [
+						"api",
+						"SqlCommandAzureFunction"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "BundleWith",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"name\": \"callAzureFunctionEvent\",\r\n  \"data\": \"{\\\"command\\\":\\\"BundleWith\\\", \\\"data\\\":{\\\"Info\\\":\\\"Quarters with spoon\\\",\\\"Quantity\\\":1}}\",\r\n  \"ttl\": 60,\r\n  \"published_at\": \"2019-02-27T02:23:55.127Z\",\r\n  \"coreid\": \"deadbeef\"\r\n}"
+				},
+				"url": {
+					"raw": "http://localhost:7071/api/SqlCommandAzureFunction",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "7071",
+					"path": [
+						"api",
+						"SqlCommandAzureFunction"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "BundleWith - Tags",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"name\": \"callAzureFunctionEvent\",\r\n  \"data\": \"{\\\"command\\\":\\\"BundleWith\\\", \\\"data\\\":{\\\"Info\\\":\\\"nail with tags black pocket knife\\\",\\\"Quantity\\\":1}}\",\r\n  \"ttl\": 60,\r\n  \"published_at\": \"2019-02-27T02:23:55.127Z\",\r\n  \"coreid\": \"deadbeef\"\r\n}"
+				},
+				"url": {
+					"raw": "http://localhost:7071/api/SqlCommandAzureFunction",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "7071",
+					"path": [
+						"api",
+						"SqlCommandAzureFunction"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "HowMany",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"name\": \"callAzureFunctionEvent\",\r\n  \"data\": \"{\\\"command\\\":\\\"FindItem\\\", \\\"data\\\":\\\"AA Battery\\\"}\",\r\n  \"ttl\": 60,\r\n  \"published_at\": \"2019-01-27T02:23:55.127Z\",\r\n  \"coreid\": \"deadbeef\"\r\n}"
+				},
+				"url": {
+					"raw": "http://localhost:7071/api/SqlCommandAzureFunction",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "7071",
+					"path": [
+						"api",
+						"SqlCommandAzureFunction"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
