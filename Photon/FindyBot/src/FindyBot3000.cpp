@@ -1,3 +1,9 @@
+/******************************************************/
+//       THIS IS A GENERATED FILE - DO NOT EDIT       //
+/******************************************************/
+
+#include "application.h"
+#line 1 "d:/Dustin/Documents/GitHub/FindyBot3000/Photon/FindyBot/src/FindyBot3000.ino"
 /*
 * Project FindyBot3000
 * Description: Google Assistant + IFTTT + Particle Photon + MAGIC
@@ -12,6 +18,51 @@
 #include <ArduinoJson.h>
 
 // Constants
+void setup();
+void loop();
+uint16_t getGradientColor(uint16_t col0, uint16_t col1, float value);
+uint16_t gradientBetween(uint16_t col0, uint16_t col1, float value);
+uint16_t getGreenRedValue(float value);
+void greenRedGradientTest();
+void googleAssistantEventHandler(const char* event, const char* data);
+void findItem(const char *data);
+void findTags(const char *data);
+void insertItem(const char *data);
+void removeItem(const char *data);
+void addTags(const char *data);
+void setQuantity(const char *data);
+void updateQuantity(const char *data);
+void showAllBoxes(const char *data);
+void bundleWith(const char *data);
+void howMany(const char *data);
+void changeColors(const char *data);
+void welcome(const char* data);
+void setDisplay(const char *data);
+void setBrightness(const char *data);
+void setDebugging(const char *data);
+void setScrollText(const char *data);
+void setStateFromText(bool& variable, const char *onOffText);
+void findItemResponseHandler(JsonObject& json);
+void findTagsResponseHandler(JsonObject& json);
+float normalize(float value, float start, float end);
+void insertItemResponseHandler(JsonObject& json);
+void removeItemResponseHandler(JsonObject& json);
+void addTagsResponseHandler(JsonObject& json);
+void setQuantityResponseHandler(JsonObject& json);
+void updateQuantityResponseHandler(JsonObject& json);
+void showAllBoxesResponseHandler(JsonObject& json);
+void bundleWithResponseHandler(JsonObject& json);
+void howManyResponseHandler(JsonObject& json);
+void unknownCommandResponseHandler(JsonObject& json);
+void dispayItemNotFound();
+void lightBox(int row, int col, uint16_t color);
+void scrollDisplay();
+void setDisplay(bool state);
+void rainbowLeds();
+void lightBoxes();
+uint32_t Wheel(uint8_t WheelPos);
+int r(int minRand, int maxRand);
+#line 15 "d:/Dustin/Documents/GitHub/FindyBot3000/Photon/FindyBot/src/FindyBot3000.ino"
 #define PIXEL_PIN D3
 #define PIXEL_COUNT 60*14
 #define PIXEL_TYPE WS2812B

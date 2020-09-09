@@ -32,6 +32,8 @@
 *.app
 
 
+# Libraries downloaded when using Particle Workbench
+lib/
 
 
 
